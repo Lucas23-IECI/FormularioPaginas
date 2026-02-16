@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
 // ── Types ──────────────────────────────────────────────────
 interface EmailAttachment {
@@ -16,7 +17,7 @@ interface SendEmailOptions {
 
 interface SendEmailResult {
     success: boolean;
-    provider: "gmail-oauth2" | "sendgrid" | "gmail-apppass" | "none";
+    provider: "resend" | "gmail-oauth2" | "sendgrid" | "gmail-apppass" | "none";
     error?: string;
 }
 
@@ -163,7 +164,7 @@ function createSendGrid(): nodemailer.Transporter | null {
 // ── Main Send Function ────────────────────────────────────
 
 /**
- * Send an email with Gmail OAuth2, falling back to SendGrid on failure.
+ * Send email via Resend (preferred), then Gmail App Password, Gmail OAuth2, SendGrid.
  * Never exposes credentials in error messages.
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
@@ -181,6 +182,44 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         return { success: false, provider: "none", error: "Invalid recipient email" };
     }
 
+    // ── Attempt 1: Resend (BEST for Vercel) ──
+    const resendKey = process.env.RESEND_API_KEY;
+    if (resendKey && isRealCredential(resendKey)) {
+        try {
+            console.log("[EmailService] Resend: attempting...");
+            const resend = new Resend(resendKey);
+
+            // Resend uses "from" with their domain for free tier, or verified domain
+            const resendFrom = process.env.RESEND_FROM || "Briefing System <onboarding@resend.dev>";
+
+            const resendAttachments = options.attachments?.map((a) => ({
+                filename: a.filename,
+                content: a.content,
+            }));
+
+            const { error } = await resend.emails.send({
+                from: resendFrom,
+                to: [options.to],
+                subject: sanitizeSubject(options.subject),
+                html: options.html,
+                attachments: resendAttachments,
+            });
+
+            if (error) {
+                console.error(`[EmailService] Resend API error: ${error.message}`);
+                // Fall through to next provider
+            } else {
+                console.log(`[EmailService] ✓ Sent to ${options.to} via Resend`);
+                return { success: true, provider: "resend" };
+            }
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            console.error(`[EmailService] Resend failed: ${msg}`);
+        }
+    } else {
+        console.log("[EmailService] Resend: skipped (RESEND_API_KEY not configured)");
+    }
+
     // Use EMAIL_USER as sender if available (some SMTP providers require sender = auth user)
     const senderEmail = process.env.EMAIL_USER || emailFrom;
 
@@ -196,34 +235,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         })),
     };
 
-    // ── Attempt 1: Gmail OAuth2 ──
-    const gmail = createGmailOAuth2();
-    if (gmail) {
-        try {
-            await gmail.sendMail(mailOptions);
-            console.log(`[EmailService] ✓ Sent to ${options.to} via Gmail OAuth2`);
-            return { success: true, provider: "gmail-oauth2" };
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : "Unknown error";
-            console.error(`[EmailService] Gmail OAuth2 failed: ${msg}`);
-            // Fall through to SendGrid
-        }
-    }
-
-    // ── Attempt 2: SendGrid fallback ──
-    const sg = createSendGrid();
-    if (sg) {
-        try {
-            await sg.sendMail(mailOptions);
-            console.log(`[EmailService] ✓ Sent to ${options.to} via SendGrid fallback`);
-            return { success: true, provider: "sendgrid" };
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : "Unknown error";
-            console.error(`[EmailService] SendGrid failed: ${msg}`);
-        }
-    }
-
-    // ── Attempt 3: Gmail App Password (legacy) ──
+    // ── Attempt 2: Gmail App Password (most common setup) ──
     const gmailLegacy = createGmailAppPass();
     if (gmailLegacy) {
         try {
@@ -233,6 +245,35 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Unknown error";
             console.error(`[EmailService] Gmail App Password failed: ${msg}`);
+            if (err instanceof Error && 'code' in err) {
+                console.error(`[EmailService] Gmail error code: ${(err as NodeJS.ErrnoException).code}`);
+            }
+        }
+    }
+
+    // ── Attempt 3: Gmail OAuth2 ──
+    const gmail = createGmailOAuth2();
+    if (gmail) {
+        try {
+            await gmail.sendMail(mailOptions);
+            console.log(`[EmailService] ✓ Sent to ${options.to} via Gmail OAuth2`);
+            return { success: true, provider: "gmail-oauth2" };
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            console.error(`[EmailService] Gmail OAuth2 failed: ${msg}`);
+        }
+    }
+
+    // ── Attempt 4: SendGrid fallback ──
+    const sg = createSendGrid();
+    if (sg) {
+        try {
+            await sg.sendMail(mailOptions);
+            console.log(`[EmailService] ✓ Sent to ${options.to} via SendGrid fallback`);
+            return { success: true, provider: "sendgrid" };
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            console.error(`[EmailService] SendGrid failed: ${msg}`);
         }
     }
 
