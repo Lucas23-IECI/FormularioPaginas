@@ -113,14 +113,17 @@ function createGmailOAuth2(): nodemailer.Transporter | null {
  */
 function createGmailAppPass(): nodemailer.Transporter | null {
     const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+    const rawPass = process.env.EMAIL_PASS;
+
+    // Strip spaces — Google shows App Passwords as "xxxx xxxx xxxx xxxx" but they work without spaces
+    const pass = rawPass?.replace(/\s+/g, "") || "";
 
     if (!user || !pass || !isRealCredential(pass)) {
-        console.log(`[EmailService] Gmail App Password: skipped (USER=${user ? "SET" : "MISSING"}, PASS=${pass ? "SET" : "MISSING"})`);
+        console.log(`[EmailService] Gmail App Password: skipped (USER=${user ? "SET" : "MISSING"}, PASS=${rawPass ? "SET" : "MISSING"})`);
         return null;
     }
 
-    console.log(`[EmailService] Gmail App Password: attempting with user=${user}`);
+    console.log(`[EmailService] Gmail App Password: attempting with user=${user}, passLength=${pass.length}`);
     return nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 465,
