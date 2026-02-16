@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/data/briefings.db
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - NEXT_PUBLIC_APP_NAME=Briefing Profesional
+    volumes:
+      - uploads:/app/uploads
+      - db_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  uploads:
+  db_data:
