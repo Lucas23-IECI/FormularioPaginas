@@ -161,12 +161,13 @@ export async function POST(request: NextRequest) {
             // Continue without docs — DB is already saved
         }
 
-        // ── Stage: email (degraded) ──
+        // ── Stage: email ──
         const emailFrom = process.env.EMAIL_FROM;
         const emailEnabled = process.env.EMAIL_ENABLED !== "false"; // default true
 
-        if (emailFrom && emailEnabled && result.docsGenerated) {
-            // Build attachments only if docs were generated
+        console.log(`[Submit] Email config: from=${emailFrom ? "SET" : "MISSING"}, enabled=${emailEnabled}, docsGenerated=${result.docsGenerated}, USER=${process.env.EMAIL_USER ? "SET" : "MISSING"}, PASS=${process.env.EMAIL_PASS ? "SET" : "MISSING"}`);
+
+        if (emailFrom && emailEnabled) {
             const businessName = (safeContact.businessName as string) || safeClientName;
             const safeFileName = businessName
                 .toLowerCase()
@@ -174,7 +175,8 @@ export async function POST(request: NextRequest) {
                 .replace(/\s+/g, "-")
                 .slice(0, 50);
 
-            const attachments = docxBuffer && xlsxBuffer ? [
+            // Attach docs only if they were generated successfully
+            const attachments = (docxBuffer && xlsxBuffer) ? [
                 {
                     filename: `briefing-${safeFileName}.docx`,
                     content: docxBuffer,
@@ -187,16 +189,21 @@ export async function POST(request: NextRequest) {
                 },
             ] : [];
 
+            // Fallback HTML if docs generation failed
+            const adminHtml = emailHtml || `<h2>Nuevo Briefing recibido</h2><p><b>Cliente:</b> ${safeClientName}</p><p><b>Tipo:</b> ${type}</p><p><b>Email:</b> ${safeClientEmail || "No proporcionado"}</p><pre>${JSON.stringify({ contactData: safeContact, contentData: safeContent, designData: safeDesign, extraData: safeExtra }, null, 2)}</pre>`;
+            const clientHtml = emailHtml || `<h2>¡Gracias por tu briefing, ${safeClientName}!</h2><p>Hemos recibido tu solicitud correctamente. Nos pondremos en contacto contigo pronto.</p>`;
+
             // ── Stage: email-admin ──
             stage = "email-admin";
             try {
                 const adminResult = await sendEmail({
                     to: emailFrom,
                     subject: sanitizeSubject(`Nuevo Briefing – ${businessName}`),
-                    html: emailHtml || `<p>Nuevo briefing recibido de ${safeClientName}</p>`,
+                    html: adminHtml,
                     attachments,
                 });
                 result.emailSent = adminResult.success;
+                console.log(`[Submit] Admin email result: success=${adminResult.success}, provider=${adminResult.provider}, error=${adminResult.error || "none"}`);
             } catch (emailError) {
                 console.error(`[Submit][${stage}] Admin email failed:`, emailError instanceof Error ? emailError.message : emailError);
             }
@@ -208,16 +215,19 @@ export async function POST(request: NextRequest) {
                     const clientResult = await sendEmail({
                         to: safeClientEmail,
                         subject: sanitizeSubject(`Resumen de tu Briefing – ${businessName}`),
-                        html: emailHtml || `<p>Gracias por tu briefing, ${safeClientName}.</p>`,
+                        html: clientHtml,
                         attachments,
                     });
                     result.clientEmailSent = clientResult.success;
+                    console.log(`[Submit] Client email result: success=${clientResult.success}, provider=${clientResult.provider}, error=${clientResult.error || "none"}`);
                 } catch (emailError) {
                     console.error(`[Submit][${stage}] Client email failed:`, emailError instanceof Error ? emailError.message : emailError);
                 }
+            } else {
+                console.log(`[Submit] No client email to send to (email="${safeClientEmail}", valid=${safeClientEmail ? isValidEmail(safeClientEmail) : false})`);
             }
-        } else if (!emailFrom || !emailEnabled) {
-            console.warn("[Submit] Email disabled or EMAIL_FROM not configured — skipping.");
+        } else {
+            console.warn(`[Submit] Email skipped: from=${emailFrom || "MISSING"}, enabled=${emailEnabled}`);
         }
 
         return NextResponse.json(result, { status: 201 });
