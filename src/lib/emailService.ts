@@ -68,6 +68,16 @@ export function sanitizeSubject(subject: string): string {
 // ── Transporter Factories ─────────────────────────────────
 
 /**
+ * Check if a value looks like a real credential (not a placeholder).
+ */
+function isRealCredential(val: string | undefined): boolean {
+    if (!val) return false;
+    const placeholders = ["...", "your_", "xxx", "placeholder", "CHANGE_ME", "TODO"];
+    const lower = val.toLowerCase();
+    return !placeholders.some((p) => lower.includes(p.toLowerCase()));
+}
+
+/**
  * Gmail OAuth2 transporter — uses refresh token to auto-generate access tokens.
  * Requires: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, EMAIL_FROM.
  */
@@ -78,9 +88,12 @@ function createGmailOAuth2(): nodemailer.Transporter | null {
     const user = process.env.EMAIL_FROM;
 
     // Skip if any credential is missing or still placeholder
-    if (!clientId || !clientSecret || !refreshToken || !user) return null;
-    if (clientId === "..." || clientSecret === "..." || refreshToken === "...") return null;
+    if (!isRealCredential(clientId) || !isRealCredential(clientSecret) || !isRealCredential(refreshToken) || !user) {
+        console.log("[EmailService] Gmail OAuth2: skipped (credentials not configured)");
+        return null;
+    }
 
+    console.log("[EmailService] Gmail OAuth2: attempting...");
     return nodemailer.createTransport({
         service: "gmail",
         auth: {
@@ -102,11 +115,20 @@ function createGmailAppPass(): nodemailer.Transporter | null {
     const user = process.env.EMAIL_USER;
     const pass = process.env.EMAIL_PASS;
 
-    if (!user || !pass) return null;
+    if (!user || !pass || !isRealCredential(pass)) {
+        console.log(`[EmailService] Gmail App Password: skipped (USER=${user ? "SET" : "MISSING"}, PASS=${pass ? "SET" : "MISSING"})`);
+        return null;
+    }
 
+    console.log(`[EmailService] Gmail App Password: attempting with user=${user}`);
     return nodemailer.createTransport({
-        service: "gmail",
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true,
         auth: { user, pass },
+        tls: {
+            rejectUnauthorized: false,
+        },
     });
 }
 
@@ -118,8 +140,12 @@ function createSendGrid(): nodemailer.Transporter | null {
     const apiKey = process.env.SENDGRID_API_KEY;
     const user = process.env.EMAIL_FROM;
 
-    if (!apiKey || !user) return null;
+    if (!apiKey || !user || !isRealCredential(apiKey)) {
+        console.log("[EmailService] SendGrid: skipped (not configured)");
+        return null;
+    }
 
+    console.log("[EmailService] SendGrid: attempting...");
     return nodemailer.createTransport({
         host: "smtp.sendgrid.net",
         port: 587,
@@ -140,17 +166,23 @@ function createSendGrid(): nodemailer.Transporter | null {
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
     const emailFrom = process.env.EMAIL_FROM;
 
+    console.log(`[EmailService] sendEmail called: to=${options.to}, subject="${options.subject}", attachments=${options.attachments?.length || 0}`);
+
     if (!emailFrom) {
         console.warn("[EmailService] EMAIL_FROM not configured — skipping.");
         return { success: false, provider: "none", error: "EMAIL_FROM not configured" };
     }
 
     if (!isValidEmail(options.to)) {
+        console.warn(`[EmailService] Invalid recipient email: "${options.to}"`);
         return { success: false, provider: "none", error: "Invalid recipient email" };
     }
 
+    // Use EMAIL_USER as sender if available (some SMTP providers require sender = auth user)
+    const senderEmail = process.env.EMAIL_USER || emailFrom;
+
     const mailOptions = {
-        from: `"Briefing System" <${emailFrom}>`,
+        from: `"Briefing System" <${senderEmail}>`,
         to: options.to,
         subject: sanitizeSubject(options.subject),
         html: options.html,

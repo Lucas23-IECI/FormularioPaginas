@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { generateDocxBuffer } from "@/lib/generateDocx";
 import { generateXlsxBuffer } from "@/lib/generateXlsx";
 import { generateEmailHtml } from "@/lib/generateEmailHtml";
+import { generateClientEmailHtml } from "@/lib/generateClientEmailHtml";
 import {
     sendEmail,
     checkRateLimit,
@@ -11,6 +12,12 @@ import {
 } from "@/lib/emailService";
 
 // ── Sanitization ──────────────────────────────────────────
+const TYPE_LABELS: Record<string, string> = {
+    LANDING: "Landing Page",
+    WEB_COMERCIAL: "Web Comercial",
+    ECOMMERCE: "E-commerce",
+};
+
 function sanitizeStr(str: string, maxLen = 2000): string {
     let clean = str;
     clean = clean.replace(/<[^>]*>/g, "");
@@ -148,24 +155,40 @@ export async function POST(request: NextRequest) {
         let docxBuffer: Buffer | null = null;
         let xlsxBuffer: Buffer | null = null;
         let emailHtml = "";
+        let clientEmailHtml = "";
 
         try {
             [docxBuffer, xlsxBuffer] = await Promise.all([
                 generateDocxBuffer(briefingData),
                 generateXlsxBuffer(briefingData),
             ]);
-            emailHtml = generateEmailHtml(briefingData);
             result.docsGenerated = true;
+            console.log(`[Submit] Docs generated successfully: DOCX=${docxBuffer?.length || 0} bytes, XLSX=${xlsxBuffer?.length || 0} bytes`);
         } catch (docsError) {
             console.error(`[Submit][${stage}] Docs generation failed:`, docsError instanceof Error ? docsError.message : docsError);
             // Continue without docs — DB is already saved
         }
 
+        try {
+            emailHtml = generateEmailHtml(briefingData);
+            console.log(`[Submit] Admin email HTML generated: ${emailHtml.length} chars`);
+        } catch (htmlError) {
+            console.error(`[Submit] Admin email HTML generation failed:`, htmlError instanceof Error ? htmlError.message : htmlError);
+        }
+
+        try {
+            clientEmailHtml = generateClientEmailHtml(briefingData);
+            console.log(`[Submit] Client email HTML generated: ${clientEmailHtml.length} chars`);
+        } catch (htmlError) {
+            console.error(`[Submit] Client email HTML generation failed:`, htmlError instanceof Error ? htmlError.message : htmlError);
+        }
+
         // ── Stage: email ──
+        stage = "email";
         const emailFrom = process.env.EMAIL_FROM;
         const emailEnabled = process.env.EMAIL_ENABLED !== "false"; // default true
 
-        console.log(`[Submit] Email config: from=${emailFrom ? "SET" : "MISSING"}, enabled=${emailEnabled}, docsGenerated=${result.docsGenerated}, USER=${process.env.EMAIL_USER ? "SET" : "MISSING"}, PASS=${process.env.EMAIL_PASS ? "SET" : "MISSING"}`);
+        console.log(`[Submit] Email config: from=${emailFrom ? "SET(" + emailFrom + ")" : "MISSING"}, enabled=${emailEnabled}, docsGenerated=${result.docsGenerated}, USER=${process.env.EMAIL_USER ? "SET" : "MISSING"}, PASS=${process.env.EMAIL_PASS ? "SET" : "MISSING"}, OAUTH=${process.env.GMAIL_CLIENT_ID ? "SET" : "MISSING"}`);
 
         if (emailFrom && emailEnabled) {
             const businessName = (safeContact.businessName as string) || safeClientName;
@@ -189,13 +212,16 @@ export async function POST(request: NextRequest) {
                 },
             ] : [];
 
-            // Fallback HTML if docs generation failed
+            // Admin email: full briefing details + docs
             const adminHtml = emailHtml || `<h2>Nuevo Briefing recibido</h2><p><b>Cliente:</b> ${safeClientName}</p><p><b>Tipo:</b> ${type}</p><p><b>Email:</b> ${safeClientEmail || "No proporcionado"}</p><pre>${JSON.stringify({ contactData: safeContact, contentData: safeContent, designData: safeDesign, extraData: safeExtra }, null, 2)}</pre>`;
-            const clientHtml = emailHtml || `<h2>¡Gracias por tu briefing, ${safeClientName}!</h2><p>Hemos recibido tu solicitud correctamente. Nos pondremos en contacto contigo pronto.</p>`;
+
+            // Client email: thank-you + summary of what they requested
+            const clientHtml = clientEmailHtml || `<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:32px 16px;"><h2 style="color:#4361EE;">¡Gracias por tu briefing, ${safeClientName}!</h2><p>Hemos recibido toda la información de tu proyecto <strong>${businessName}</strong>.</p><p>Nuestro equipo revisará los detalles y te contactaremos pronto para comenzar a trabajar en tu ${TYPE_LABELS[type] || type}.</p><hr style="border:1px solid #e5e7eb;margin:24px 0;"><p style="color:#9ca3af;font-size:12px;">Este es un correo automático. Si tienes preguntas, responde a este correo.</p></body></html>`;
 
             // ── Stage: email-admin ──
             stage = "email-admin";
             try {
+                console.log(`[Submit] Sending admin email to: ${emailFrom} with ${attachments.length} attachments...`);
                 const adminResult = await sendEmail({
                     to: emailFrom,
                     subject: sanitizeSubject(`Nuevo Briefing – ${businessName}`),
@@ -205,23 +231,29 @@ export async function POST(request: NextRequest) {
                 result.emailSent = adminResult.success;
                 console.log(`[Submit] Admin email result: success=${adminResult.success}, provider=${adminResult.provider}, error=${adminResult.error || "none"}`);
             } catch (emailError) {
-                console.error(`[Submit][${stage}] Admin email failed:`, emailError instanceof Error ? emailError.message : emailError);
+                console.error(`[Submit][${stage}] Admin email EXCEPTION:`, emailError instanceof Error ? emailError.message : emailError);
+                if (emailError instanceof Error && emailError.stack) {
+                    console.error(`[Submit][${stage}] Stack:`, emailError.stack);
+                }
             }
 
             // ── Stage: email-client ──
             stage = "email-client";
             if (safeClientEmail && isValidEmail(safeClientEmail)) {
                 try {
+                    console.log(`[Submit] Sending client email to: ${safeClientEmail}...`);
                     const clientResult = await sendEmail({
                         to: safeClientEmail,
-                        subject: sanitizeSubject(`Resumen de tu Briefing – ${businessName}`),
+                        subject: sanitizeSubject(`¡Recibimos tu proyecto ${businessName}! ✨`),
                         html: clientHtml,
-                        attachments,
                     });
                     result.clientEmailSent = clientResult.success;
                     console.log(`[Submit] Client email result: success=${clientResult.success}, provider=${clientResult.provider}, error=${clientResult.error || "none"}`);
                 } catch (emailError) {
-                    console.error(`[Submit][${stage}] Client email failed:`, emailError instanceof Error ? emailError.message : emailError);
+                    console.error(`[Submit][${stage}] Client email EXCEPTION:`, emailError instanceof Error ? emailError.message : emailError);
+                    if (emailError instanceof Error && emailError.stack) {
+                        console.error(`[Submit][${stage}] Stack:`, emailError.stack);
+                    }
                 }
             } else {
                 console.log(`[Submit] No client email to send to (email="${safeClientEmail}", valid=${safeClientEmail ? isValidEmail(safeClientEmail) : false})`);

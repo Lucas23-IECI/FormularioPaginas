@@ -216,7 +216,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                             className="flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
                         >
                             {showPreview ? <EyeOff size={14} /> : <Eye size={14} />}
-                            <span className="hidden sm:inline">Preview</span>
+                            <span>Preview</span>
                         </button>
                     )}
                 </div>
@@ -292,7 +292,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
 
                     {/* Live Preview — reads from context, no props needed */}
                     {showPreview && config.type === "LANDING" && (
-                        <div className="hidden lg:block animate-fadeIn sticky top-24">
+                        <div className="animate-fadeIn lg:sticky lg:top-24">
                             <div className="mb-3 flex items-center justify-between">
                                 <h3 className="text-sm font-medium text-white/60">Vista previa en tiempo real</h3>
                                 <button
