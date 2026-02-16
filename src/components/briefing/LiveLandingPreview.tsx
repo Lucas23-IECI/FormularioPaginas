@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FormData } from "@/types/briefing";
+import { useBriefingForm } from "@/modules/briefingEngine/context";
 import {
     Globe,
     Mail,
@@ -20,10 +20,6 @@ import {
     Image as ImageIcon,
     Briefcase,
 } from "lucide-react";
-
-interface LiveLandingPreviewProps {
-    formData: FormData;
-}
 
 // Placeholder images per section generated via picsum with stable seeds
 const sectionImages: Record<string, string[]> = {
@@ -61,13 +57,129 @@ const sectionImages: Record<string, string[]> = {
     ],
 };
 
-export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
+// ── Design style presets ──────────────────────────────────
+interface StylePreset {
+    isDark: boolean;
+    bg: string;
+    text: string;
+    subtext: string;
+    card: string;
+    divider: string;
+    heroOverlay: string;
+    fontClass: string;
+    borderRadius: string;
+}
+
+function getStylePreset(designStyle: string, primaryColor: string): StylePreset {
+    switch (designStyle) {
+        case "oscuro":
+            return {
+                isDark: true,
+                bg: "bg-gray-950",
+                text: "text-white",
+                subtext: "text-gray-400",
+                card: "bg-white/5",
+                divider: "border-white/5",
+                heroOverlay: `linear-gradient(135deg, ${primaryColor}30, ${primaryColor}10)`,
+                fontClass: "",
+                borderRadius: "rounded-lg",
+            };
+        case "elegante":
+            return {
+                isDark: false,
+                bg: "bg-stone-50",
+                text: "text-stone-900",
+                subtext: "text-stone-500",
+                card: "bg-white",
+                divider: "border-stone-200",
+                heroOverlay: `linear-gradient(135deg, ${primaryColor}15, ${primaryColor}05)`,
+                fontClass: "font-serif",
+                borderRadius: "rounded-none",
+            };
+        case "minimalista":
+            return {
+                isDark: false,
+                bg: "bg-white",
+                text: "text-gray-800",
+                subtext: "text-gray-400",
+                card: "bg-gray-50/50",
+                divider: "border-gray-50",
+                heroOverlay: `linear-gradient(180deg, ${primaryColor}08, transparent)`,
+                fontClass: "",
+                borderRadius: "rounded-xl",
+            };
+        case "corporativo":
+            return {
+                isDark: false,
+                bg: "bg-slate-50",
+                text: "text-slate-900",
+                subtext: "text-slate-500",
+                card: "bg-white",
+                divider: "border-slate-200",
+                heroOverlay: `linear-gradient(135deg, #1e293b, #334155)`,
+                fontClass: "",
+                borderRadius: "rounded-md",
+            };
+        case "creativo":
+            return {
+                isDark: false,
+                bg: "bg-white",
+                text: "text-gray-900",
+                subtext: "text-gray-600",
+                card: "bg-gradient-to-br from-gray-50 to-white",
+                divider: "border-purple-100",
+                heroOverlay: `linear-gradient(135deg, ${primaryColor}30, #a855f740)`,
+                fontClass: "",
+                borderRadius: "rounded-2xl",
+            };
+        case "calido":
+            return {
+                isDark: false,
+                bg: "bg-amber-50/30",
+                text: "text-amber-950",
+                subtext: "text-amber-700/60",
+                card: "bg-white",
+                divider: "border-amber-100",
+                heroOverlay: `linear-gradient(135deg, ${primaryColor}20, #f59e0b15)`,
+                fontClass: "",
+                borderRadius: "rounded-xl",
+            };
+        case "moderno":
+        default:
+            return {
+                isDark: false,
+                bg: "bg-white",
+                text: "text-gray-900",
+                subtext: "text-gray-600",
+                card: "bg-gray-50",
+                divider: "border-gray-100",
+                heroOverlay: `linear-gradient(135deg, ${primaryColor}22, ${primaryColor}08)`,
+                fontClass: "",
+                borderRadius: "rounded-lg",
+            };
+    }
+}
+
+// Canonical section order for landing page preview
+const SECTION_ORDER = [
+    "hero", "servicios", "proceso", "sobre_mi", "portafolio",
+    "testimonios", "equipo", "precios", "faq", "blog",
+    "estadisticas", "clientes", "contacto", "ubicacion",
+];
+
+export function LiveLandingPreview() {
+    // ── Read directly from context — single source of truth ──
+    const { formData } = useBriefingForm();
+
     const primaryColor = (formData.primaryColor as string) || "#6366f1";
+    const secondaryColor = (formData.secondaryColor as string) || "";
+    const accentColor = secondaryColor || primaryColor;
     const businessName = (formData.businessName as string) || "Tu Negocio";
     const industry = (formData.industry as string) || "";
     const designStyle = (formData.designStyle as string) || "moderno";
     const sections = (formData.sections as string[]) || [];
     const mainCTA = (formData.mainCTA as string) || "whatsapp";
+    const features = (formData.features as string[]) || [];
 
     const ctaLabels: Record<string, string> = {
         whatsapp: "Contáctanos por WhatsApp",
@@ -78,24 +190,18 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
         descargar: "Descargar gratis",
     };
 
-    const isDark = designStyle === "oscuro";
-    const bgClass = isDark ? "bg-gray-950" : "bg-white";
-    const textClass = isDark ? "text-white" : "text-gray-900";
-    const subtextClass = isDark ? "text-gray-400" : "text-gray-600";
-    const cardBg = isDark ? "bg-white/5" : "bg-gray-50";
-    const dividerColor = isDark ? "border-white/5" : "border-gray-100";
+    const style = getStylePreset(designStyle, primaryColor);
+    const { isDark, fontClass } = style;
+    const bgClass = style.bg;
+    const textClass = style.text;
+    const subtextClass = style.subtext;
+    const cardBg = style.card;
+    const dividerColor = style.divider;
 
-    // Ordered sections to match visual flow
-    const sectionOrder = [
-        "hero", "servicios", "sobre_mi", "portafolio", "testimonios",
-        "precios", "proceso", "estadisticas", "equipo", "faq",
-        "clientes", "blog", "contacto", "ubicacion",
-    ];
-
-    const activeSections = sectionOrder.filter((s) => sections.includes(s));
+    const activeSections = SECTION_ORDER.filter((s) => sections.includes(s));
 
     return (
-        <div className="w-full rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900 transition-all duration-500">
+        <div className={`w-full rounded-xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900 transition-all duration-300 relative ${fontClass}`}>
             {/* Browser Chrome */}
             <div className="bg-slate-800 px-4 py-2 flex items-center gap-2">
                 <div className="flex gap-1.5">
@@ -117,12 +223,9 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                 {/* Hero Section — always present or if selected */}
                 {(activeSections.includes("hero") || activeSections.length === 0) && (
                     <div
-                        className="relative overflow-hidden transition-all duration-500"
-                        style={{
-                            background: `linear-gradient(135deg, ${primaryColor}22, ${primaryColor}08)`,
-                        }}
+                        className="relative overflow-hidden transition-all duration-300"
+                        style={{ background: style.heroOverlay }}
                     >
-                        {/* Hero image */}
                         <div className="relative">
                             <img
                                 src={sectionImages.hero[0]}
@@ -131,13 +234,13 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                                 style={{ filter: `sepia(0.3) hue-rotate(${parseInt(primaryColor.slice(1), 16) % 360}deg)` }}
                             />
                             <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-                                <h3 className={`text-lg font-bold ${textClass} mb-1 drop-shadow-lg`}>{businessName}</h3>
+                                <h3 className={`text-lg font-bold ${style.isDark || designStyle === "corporativo" ? "text-white" : textClass} mb-1 drop-shadow-lg`}>{businessName}</h3>
                                 {industry && (
-                                    <p className={`text-[10px] ${subtextClass} mb-3 capitalize`}>{industry.replace(/_/g, " ")}</p>
+                                    <p className={`text-[10px] ${style.isDark || designStyle === "corporativo" ? "text-white/70" : subtextClass} mb-3 capitalize`}>{industry.replace(/_/g, " ")}</p>
                                 )}
                                 <button
-                                    className="px-4 py-1.5 rounded-lg text-white text-[10px] font-medium shadow-lg transition-transform hover:scale-105"
-                                    style={{ backgroundColor: primaryColor }}
+                                    className={`px-4 py-1.5 ${style.borderRadius} text-white text-[10px] font-medium shadow-lg transition-transform hover:scale-105`}
+                                    style={{ backgroundColor: accentColor }}
                                 >
                                     <span className="flex items-center gap-1">
                                         {ctaLabels[mainCTA] || "Contáctanos"} <ArrowRight size={10} />
@@ -158,7 +261,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Servicios ─── */}
                             {section === "servicios" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Briefcase size={10} />} title="Nuestros Servicios" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<Briefcase size={10} />} title="Nuestros Servicios" color={accentColor} textClass={textClass} />
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {sectionImages.servicios.map((src, i) => (
                                             <div key={i} className={`${cardBg} rounded-lg overflow-hidden transition-colors`}>
@@ -176,7 +279,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Sobre mí ─── */}
                             {section === "sobre_mi" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Users size={10} />} title="Sobre Nosotros" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<Users size={10} />} title="Sobre Nosotros" color={accentColor} textClass={textClass} />
                                     <div className="flex gap-3 items-center">
                                         <img
                                             src={sectionImages.sobre_mi[0]}
@@ -195,7 +298,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Portafolio ─── */}
                             {section === "portafolio" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<ImageIcon size={10} />} title="Nuestro Portafolio" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<ImageIcon size={10} />} title="Nuestro Portafolio" color={accentColor} textClass={textClass} />
                                     <div className="grid grid-cols-4 gap-1">
                                         {sectionImages.portafolio.map((src, i) => (
                                             <img
@@ -212,11 +315,11 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Testimonios ─── */}
                             {section === "testimonios" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Star size={10} />} title="Testimonios" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<Star size={10} />} title="Testimonios" color={accentColor} textClass={textClass} />
                                     <div className={`${cardBg} rounded-lg p-3 transition-colors`}>
                                         <div className="flex gap-0.5 mb-1.5">
                                             {[1, 2, 3, 4, 5].map((i) => (
-                                                <Star key={i} size={9} fill={primaryColor} color={primaryColor} />
+                                                <Star key={i} size={9} fill={accentColor} color={accentColor} />
                                             ))}
                                         </div>
                                         <div className={`h-1.5 ${isDark ? "bg-white/10" : "bg-gray-100"} rounded w-full mb-1`} />
@@ -232,13 +335,13 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Precios ─── */}
                             {section === "precios" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<DollarSign size={10} />} title="Planes y Precios" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<DollarSign size={10} />} title="Planes y Precios" color={accentColor} textClass={textClass} />
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {["Básico", "Pro", "Premium"].map((plan, i) => (
                                             <div
                                                 key={plan}
                                                 className={`${cardBg} rounded-lg p-2 text-center transition-colors`}
-                                                style={i === 1 ? { boxShadow: `0 0 0 1px ${primaryColor}` } : {}}
+                                                style={i === 1 ? { boxShadow: `0 0 0 1px ${accentColor}` } : {}}
                                             >
                                                 <div className={`text-[8px] font-medium ${subtextClass}`}>{plan}</div>
                                                 <div className={`text-xs font-bold ${textClass} my-1`}>${"$".repeat(i + 1)}</div>
@@ -253,13 +356,13 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Proceso ─── */}
                             {section === "proceso" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<RefreshCw size={10} />} title="Nuestro Proceso" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<RefreshCw size={10} />} title="Nuestro Proceso" color={accentColor} textClass={textClass} />
                                     <div className="flex items-center gap-1">
                                         {["1", "2", "3", "4"].map((step, i) => (
                                             <React.Fragment key={step}>
                                                 <div
                                                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                                                    style={{ backgroundColor: primaryColor }}
+                                                    style={{ backgroundColor: accentColor }}
                                                 >
                                                     {step}
                                                 </div>
@@ -273,11 +376,11 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Estadísticas ─── */}
                             {section === "estadisticas" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<BarChart3 size={10} />} title="Cifras y Resultados" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<BarChart3 size={10} />} title="Cifras y Resultados" color={accentColor} textClass={textClass} />
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         {[{ n: "150+", l: "Proyectos" }, { n: "98%", l: "Satisfacción" }, { n: "5★", l: "Rating" }].map(({ n, l }) => (
                                             <div key={l}>
-                                                <div className="text-sm font-bold" style={{ color: primaryColor }}>{n}</div>
+                                                <div className="text-sm font-bold" style={{ color: accentColor }}>{n}</div>
                                                 <div className={`text-[8px] ${subtextClass}`}>{l}</div>
                                             </div>
                                         ))}
@@ -288,7 +391,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Equipo ─── */}
                             {section === "equipo" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Users size={10} />} title="Nuestro Equipo" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<Users size={10} />} title="Nuestro Equipo" color={accentColor} textClass={textClass} />
                                     <div className="flex justify-center gap-3">
                                         {sectionImages.equipo.map((src, i) => (
                                             <div key={i} className="text-center">
@@ -303,7 +406,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── FAQ ─── */}
                             {section === "faq" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<HelpCircle size={10} />} title="Preguntas Frecuentes" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<HelpCircle size={10} />} title="Preguntas Frecuentes" color={accentColor} textClass={textClass} />
                                     <div className="space-y-1">
                                         {[1, 2, 3].map((i) => (
                                             <div key={i} className={`${cardBg} rounded p-2 flex items-center justify-between transition-colors`}>
@@ -318,7 +421,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Clientes ─── */}
                             {section === "clientes" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Building2 size={10} />} title="Confían en Nosotros" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<Building2 size={10} />} title="Confían en Nosotros" color={accentColor} textClass={textClass} />
                                     <div className="flex justify-center gap-3">
                                         {sectionImages.clientes.map((src, i) => (
                                             <img
@@ -335,7 +438,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Blog ─── */}
                             {section === "blog" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<FileText size={10} />} title="Blog / Noticias" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<FileText size={10} />} title="Blog / Noticias" color={accentColor} textClass={textClass} />
                                     <div className="grid grid-cols-2 gap-1.5">
                                         {sectionImages.blog.map((src, i) => (
                                             <div key={i} className={`${cardBg} rounded-lg overflow-hidden transition-colors`}>
@@ -353,7 +456,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Contacto ─── */}
                             {section === "contacto" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Mail size={10} />} title="Contacto" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<Mail size={10} />} title="Contacto" color={accentColor} textClass={textClass} />
                                     <div className={`flex gap-4 text-[9px] ${subtextClass}`}>
                                         <span className="flex items-center gap-1"><Mail size={9} /> Email</span>
                                         <span className="flex items-center gap-1"><Phone size={9} /> Teléfono</span>
@@ -362,7 +465,7 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                                     <div className={`${cardBg} rounded p-2 space-y-1 transition-colors`}>
                                         <div className={`h-5 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
                                         <div className={`h-5 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
-                                        <div className="h-5 rounded w-1/3 text-white text-[8px] flex items-center justify-center" style={{ backgroundColor: primaryColor }}>Enviar</div>
+                                        <div className="h-5 rounded w-1/3 text-white text-[8px] flex items-center justify-center" style={{ backgroundColor: accentColor }}>Enviar</div>
                                     </div>
                                 </div>
                             )}
@@ -370,13 +473,13 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                             {/* ─── Ubicación ─── */}
                             {section === "ubicacion" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<MapPin size={10} />} title="Ubicación" color={primaryColor} textClass={textClass} />
+                                    <SectionTitle icon={<MapPin size={10} />} title="Ubicación" color={accentColor} textClass={textClass} />
                                     <div
                                         className="h-20 rounded-lg flex items-center justify-center"
-                                        style={{ backgroundColor: `${primaryColor}08` }}
+                                        style={{ backgroundColor: `${accentColor}08` }}
                                     >
                                         <div className="text-center">
-                                            <MapPin size={16} style={{ color: primaryColor }} className="mx-auto mb-1" />
+                                            <MapPin size={16} style={{ color: accentColor }} className="mx-auto mb-1" />
                                             <span className={`text-[8px] ${subtextClass}`}>Google Maps</span>
                                         </div>
                                     </div>
@@ -396,14 +499,14 @@ export function LiveLandingPreview({ formData }: LiveLandingPreviewProps) {
                 {/* Footer */}
                 <div
                     className="px-6 py-3 text-center transition-colors duration-300"
-                    style={{ backgroundColor: `${primaryColor}10` }}
+                    style={{ backgroundColor: `${accentColor}10` }}
                 >
                     <p className={`text-[9px] ${subtextClass}`}>© 2026 {businessName} — Todos los derechos reservados</p>
                 </div>
             </div>
 
             {/* WhatsApp floating button */}
-            {((formData.features as string[]) || []).includes("whatsapp_button") && (
+            {features.includes("whatsapp_button") && (
                 <div
                     className="absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
                     style={{ backgroundColor: "#25D366" }}

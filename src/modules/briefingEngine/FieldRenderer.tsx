@@ -100,10 +100,10 @@ export function FieldRenderer({ field }: FieldRendererProps) {
     };
 
     const baseInputClass =
-        "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all duration-200";
+        "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all duration-200";
 
     const errorInputClass =
-        "w-full px-4 py-3 bg-red-900/20 border border-red-500/50 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all duration-200";
+        "w-full px-4 py-3 bg-red-900/20 border border-red-500/50 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50 transition-all duration-200";
 
 
     // Sanitized update with type-specific formatting
@@ -171,25 +171,28 @@ export function FieldRenderer({ field }: FieldRendererProps) {
         case "tel":
             // Strip +56 prefix for display if present
             const displayValue = ((value as string) || "").replace(/^\+56\s?/, "");
+            const isError = !!error;
+
+            const containerClass = isError
+                ? "w-full px-4 py-3 bg-red-900/20 border border-red-500/50 rounded-xl flex items-center gap-3 transition-all duration-200 focus-within:ring-2 focus-within:ring-red-500/50 focus-within:border-red-500/50"
+                : "w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl flex items-center gap-3 transition-all duration-200 focus-within:ring-2 focus-within:ring-indigo-500/50 focus-within:border-indigo-500/50";
 
             return (
                 <div className="space-y-2">
                     <Label field={field} />
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-white/90 select-none">
-                            +56
-                        </div>
+                    <div className={containerClass}>
+                        <span className="text-gray-500 select-none font-medium">+56</span>
                         <input
                             type="text"
                             value={displayValue}
                             onChange={(e) => {
-                                // Combine constant prefix with user input for formatter
+                                // Combine constant prefix with user input
                                 const fullValue = "+56 " + e.target.value;
                                 handleChange(field.id, fullValue, "tel");
                             }}
                             placeholder=""
-                            className={`${inputClass} pl-14`}
-                            maxLength={11} // 9 digits + 2 spaces
+                            className="bg-transparent border-none p-0 w-full text-white placeholder-white/30 focus:outline-none focus:ring-0"
+                            maxLength={11}
                             style={autofillStyle}
                         />
                     </div>

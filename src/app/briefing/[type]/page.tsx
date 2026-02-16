@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BriefingFormProvider, useBriefingForm } from "@/modules/briefingEngine/context";
 import { StepRenderer } from "@/modules/briefingEngine/StepRenderer";
@@ -8,8 +8,44 @@ import { StepIndicator } from "@/components/briefing/StepIndicator";
 import { LiveLandingPreview } from "@/components/briefing/LiveLandingPreview";
 import { getBriefingConfig } from "@/modules/briefingEngine";
 import { BriefingTypeConfig } from "@/types/briefing";
-import { ArrowLeft, ArrowRight, Send, Loader2, Eye, EyeOff, ChevronLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, Send, Loader2, Eye, EyeOff, ChevronLeft, Maximize2, X } from "lucide-react";
 import Link from "next/link";
+
+// ── Fullscreen Preview Modal ──────────────────────────────
+function FullscreenPreviewModal({ onClose }: { onClose: () => void }) {
+    // Close on Escape key
+    useEffect(() => {
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") onClose();
+        };
+        document.addEventListener("keydown", handleKey);
+        return () => document.removeEventListener("keydown", handleKey);
+    }, [onClose]);
+
+    // Prevent body scroll while modal is open
+    useEffect(() => {
+        document.body.style.overflow = "hidden";
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, []);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn">
+            {/* Close button */}
+            <button
+                onClick={onClose}
+                className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            >
+                <X size={20} />
+            </button>
+            {/* Preview container — fills viewport with scroll */}
+            <div className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+                <LiveLandingPreview />
+            </div>
+        </div>
+    );
+}
 
 function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
     const {
@@ -20,12 +56,12 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
         submitForm,
         isStepValid,
         isSubmitting,
-        formData,
         totalSteps,
     } = useBriefingForm();
 
     const router = useRouter();
     const [showPreview, setShowPreview] = useState(false);
+    const [fullscreenPreview, setFullscreenPreview] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -59,6 +95,8 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
         }
     };
 
+    const closeFullscreen = useCallback(() => setFullscreenPreview(false), []);
+
     if (!currentStepConfig) return null;
 
     return (
@@ -69,6 +107,11 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                 <div className="absolute top-20 right-1/4 w-72 h-72 bg-indigo-500/5 rounded-full blur-3xl" />
                 <div className="absolute bottom-20 left-1/4 w-72 h-72 bg-purple-500/5 rounded-full blur-3xl" />
             </div>
+
+            {/* Fullscreen preview modal */}
+            {fullscreenPreview && config.type === "LANDING" && (
+                <FullscreenPreviewModal onClose={closeFullscreen} />
+            )}
 
             {/* Top nav */}
             <div className="sticky top-0 z-20 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
@@ -156,13 +199,20 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                         </div>
                     </div>
 
-                    {/* Live Preview */}
+                    {/* Live Preview — reads from context, no props needed */}
                     {showPreview && config.type === "LANDING" && (
                         <div className="hidden lg:block animate-fadeIn sticky top-24">
-                            <div className="mb-3">
+                            <div className="mb-3 flex items-center justify-between">
                                 <h3 className="text-sm font-medium text-white/60">Vista previa en tiempo real</h3>
+                                <button
+                                    onClick={() => setFullscreenPreview(true)}
+                                    className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                                >
+                                    <Maximize2 size={12} />
+                                    <span>Expandir</span>
+                                </button>
                             </div>
-                            <LiveLandingPreview formData={formData} />
+                            <LiveLandingPreview />
                         </div>
                     )}
                 </div>
