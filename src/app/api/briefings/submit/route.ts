@@ -1,17 +1,66 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
 import { generateDocxBuffer } from "@/lib/generateDocx";
 import { generateXlsxBuffer } from "@/lib/generateXlsx";
 import { generateEmailHtml } from "@/lib/generateEmailHtml";
+import {
+    sendEmail,
+    checkRateLimit,
+    isValidEmail,
+    sanitizeSubject,
+} from "@/lib/emailService";
 
+// ── Sanitization ──────────────────────────────────────────
+function sanitizeStr(str: string, maxLen = 2000): string {
+    let clean = str;
+    clean = clean.replace(/<[^>]*>/g, "");
+    clean = clean.replace(/javascript:/gi, "");
+    clean = clean.replace(/on\w+\s*=/gi, "");
+    clean = clean.replace(
+        /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC|EXECUTE)\b)/gi,
+        ""
+    );
+    clean = clean.replace(/(--)|(\/\*)|(\*\/)/g, "");
+    clean = clean.replace(/['"]?\s*(OR|AND)\s*['"]?\s*\d+\s*=\s*\d+/gi, "");
+    clean = clean.replace(/\0/g, "");
+    return clean.trim().slice(0, maxLen);
+}
+
+function sanitizeDeep(obj: unknown): unknown {
+    if (typeof obj === "string") return sanitizeStr(obj);
+    if (Array.isArray(obj)) return obj.map(sanitizeDeep);
+    if (obj && typeof obj === "object") {
+        const result: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(obj)) {
+            result[sanitizeStr(key, 100)] = sanitizeDeep(val);
+        }
+        return result;
+    }
+    return obj;
+}
+
+// ── POST /api/briefings/submit ────────────────────────────
 export async function POST(request: NextRequest) {
     try {
+        // ── Rate limiting by IP ──
+        const forwarded = request.headers.get("x-forwarded-for");
+        const ip = forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+        if (!checkRateLimit(ip)) {
+            return NextResponse.json(
+                { error: "Demasiadas solicitudes. Intenta en un minuto." },
+                { status: 429 }
+            );
+        }
+
+        // ── Parse & validate body ──
         const body = await request.json();
         const { type, clientName, clientEmail, contactData, contentData, designData, extraData } = body;
 
         if (!type || !clientName) {
-            return NextResponse.json({ error: "type and clientName are required" }, { status: 400 });
+            return NextResponse.json(
+                { error: "type and clientName are required" },
+                { status: 400 }
+            );
         }
 
         const validTypes = ["LANDING", "WEB_COMERCIAL", "ECOMMERCE"];
@@ -19,47 +68,24 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Invalid briefing type" }, { status: 400 });
         }
 
-        if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+        if (clientEmail && !isValidEmail(clientEmail)) {
             return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
         }
 
-        // ── Sanitization ──
-        const sanitizeStr = (str: string, maxLen = 2000): string => {
-            let clean = str;
-            clean = clean.replace(/<[^>]*>/g, "");
-            clean = clean.replace(/javascript:/gi, "");
-            clean = clean.replace(/on\w+\s*=/gi, "");
-            clean = clean.replace(/(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|EXEC|EXECUTE)\b)/gi, "");
-            clean = clean.replace(/(--)|(\/\*)|(\*\/)/g, "");
-            clean = clean.replace(/['"]?\s*(OR|AND)\s*['"]?\s*\d+\s*=\s*\d+/gi, "");
-            clean = clean.replace(/\0/g, "");
-            return clean.trim().slice(0, maxLen);
-        };
-
-        const sanitizeDeep = (obj: unknown): unknown => {
-            if (typeof obj === "string") return sanitizeStr(obj);
-            if (Array.isArray(obj)) return obj.map(sanitizeDeep);
-            if (obj && typeof obj === "object") {
-                const result: Record<string, unknown> = {};
-                for (const [key, val] of Object.entries(obj)) {
-                    result[sanitizeStr(key, 100)] = sanitizeDeep(val);
-                }
-                return result;
-            }
-            return obj;
-        };
-
+        // ── Sanitize all data ──
         const safeContact = sanitizeDeep(contactData || {}) as Record<string, unknown>;
         const safeContent = sanitizeDeep(contentData || {}) as Record<string, unknown>;
         const safeDesign = sanitizeDeep(designData || {}) as Record<string, unknown>;
         const safeExtra = sanitizeDeep(extraData || {}) as Record<string, unknown>;
+        const safeClientName = sanitizeStr(clientName, 500);
+        const safeClientEmail = sanitizeStr(clientEmail || "", 500);
 
         // ── Save to database ──
         const briefing = await prisma.briefing.create({
             data: {
                 type,
-                clientName: sanitizeStr(clientName, 500),
-                clientEmail: sanitizeStr(clientEmail || "", 500),
+                clientName: safeClientName,
+                clientEmail: safeClientEmail,
                 contactData: JSON.stringify(safeContact),
                 contentData: JSON.stringify(safeContent),
                 designData: JSON.stringify(safeDesign),
@@ -70,8 +96,8 @@ export async function POST(request: NextRequest) {
         // ── Generate documents ──
         const briefingData = {
             type,
-            clientName: sanitizeStr(clientName, 500),
-            clientEmail: sanitizeStr(clientEmail || "", 500),
+            clientName: safeClientName,
+            clientEmail: safeClientEmail,
             contactData: safeContact,
             contentData: safeContent,
             designData: safeDesign,
@@ -85,65 +111,69 @@ export async function POST(request: NextRequest) {
 
         const emailHtml = generateEmailHtml(briefingData);
 
-        // ── Send emails ──
-        const emailUser = process.env.EMAIL_USER;
-        const emailPass = process.env.EMAIL_PASS;
+        // ── Build attachments ──
+        const businessName = (safeContact.businessName as string) || safeClientName;
+        const safeFileName = businessName
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .slice(0, 50);
 
-        if (emailUser && emailPass) {
-            const transporter = nodemailer.createTransport({
-                service: "gmail",
-                auth: {
-                    user: emailUser,
-                    pass: emailPass,
-                },
-            });
+        const attachments = [
+            {
+                filename: `briefing-${safeFileName}.docx`,
+                content: docxBuffer,
+                contentType:
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            },
+            {
+                filename: `briefing-${safeFileName}.xlsx`,
+                content: xlsxBuffer,
+                contentType:
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            },
+        ];
 
-            const businessName = (safeContact.businessName as string) || clientName;
-            const subject = `Resumen de tu Briefing – ${businessName}`;
+        // ── Send emails via emailService (OAuth2 + fallback) ──
+        const emailFrom = process.env.EMAIL_FROM;
+        let adminEmailSent = false;
+        let clientEmailSent = false;
 
-            const attachments = [
-                {
-                    filename: `briefing-${businessName.toLowerCase().replace(/\s+/g, "-")}.docx`,
-                    content: docxBuffer,
-                    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                },
-                {
-                    filename: `briefing-${businessName.toLowerCase().replace(/\s+/g, "-")}.xlsx`,
-                    content: xlsxBuffer,
-                    contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                },
-            ];
-
-            const mailOptions = {
-                from: `"Briefing System" <${emailUser}>`,
-                subject,
+        if (emailFrom) {
+            // Send to admin
+            const adminResult = await sendEmail({
+                to: emailFrom,
+                subject: sanitizeSubject(`Nuevo Briefing – ${businessName}`),
                 html: emailHtml,
                 attachments,
-            };
-
-            // Send to admin (yourself)
-            await transporter.sendMail({
-                ...mailOptions,
-                to: emailUser,
             });
+            adminEmailSent = adminResult.success;
 
-            // Send to client (if email provided)
-            if (clientEmail) {
-                await transporter.sendMail({
-                    ...mailOptions,
-                    to: clientEmail,
+            // Send to client (if valid email provided)
+            if (safeClientEmail && isValidEmail(safeClientEmail)) {
+                const clientResult = await sendEmail({
+                    to: safeClientEmail,
+                    subject: sanitizeSubject(`Resumen de tu Briefing – ${businessName}`),
+                    html: emailHtml,
+                    attachments,
                 });
+                clientEmailSent = clientResult.success;
             }
         } else {
-            console.warn("EMAIL_USER or EMAIL_PASS not configured. Skipping email send.");
+            console.warn("[Submit] EMAIL_FROM not configured — skipping email send.");
         }
 
         return NextResponse.json(
-            { id: briefing.id, status: "created", emailSent: !!(emailUser && emailPass) },
+            {
+                id: briefing.id,
+                status: "created",
+                emailSent: adminEmailSent,
+                clientEmailSent,
+            },
             { status: 201 }
         );
     } catch (error) {
-        console.error("Error in briefing submit:", error);
+        console.error("[Submit] Error:", error instanceof Error ? error.message : error);
         return NextResponse.json(
             { error: "Internal server error" },
             { status: 500 }
