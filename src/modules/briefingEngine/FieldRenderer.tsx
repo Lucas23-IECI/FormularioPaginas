@@ -301,10 +301,10 @@ export function FieldRenderer({ field }: FieldRendererProps) {
                                         }`}
                                 >
                                     <div
-                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? "border-indigo-500" : "border-white/30"
+                                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? "bg-indigo-500 border-indigo-500" : "border-white/30"
                                             }`}
                                     >
-                                        {selected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-500" />}
+                                        {selected && <div className="w-2 h-2 rounded-full bg-white" />}
                                     </div>
                                     <span>{opt.label}</span>
                                 </button>
