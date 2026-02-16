@@ -100,6 +100,9 @@ export function generateClientEmailHtml(data: BriefingData): string {
     const goalLabel = GOAL_LABELS[mainGoal] || mainGoal || "No especificado";
     const deadlineLabel = DEADLINE_LABELS[deadline] || deadline || "No especificado";
 
+    // Solo el primer nombre para el saludo del correo
+    const firstName = data.clientName.trim().split(/\s+/)[0];
+
     return `
 <!DOCTYPE html>
 <html>
@@ -125,7 +128,7 @@ export function generateClientEmailHtml(data: BriefingData): string {
             
             <!-- Greeting -->
             <p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
-                Hola <strong>${data.clientName}</strong>,
+                Hola <strong>${firstName}</strong>,
             </p>
             <p style="color: #4b5563; font-size: 15px; line-height: 1.6; margin: 0 0 24px 0;">
                 Queremos confirmarte que recibimos toda la información de tu proyecto 
