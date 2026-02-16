@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: 'standalone',
-    serverExternalPackages: ['@libsql/client'],
+    experimental: {
+        serverComponentsExternalPackages: ['@libsql/client', '@prisma/adapter-libsql'],
+    },
 };
 
 export default nextConfig;
