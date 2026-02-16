@@ -7,6 +7,7 @@ import {
     AlignmentType,
     BorderStyle,
 } from "docx";
+import { translateValue } from "./valueLabels";
 
 interface BriefingData {
     type: string;
@@ -20,7 +21,7 @@ interface BriefingData {
 
 // Field labels for human-readable output
 const FIELD_LABELS: Record<string, string> = {
-    clientName: "Nombre completo",
+    clientName: "Nombre y Apellido",
     businessName: "Nombre del negocio",
     industry: "Rubro / Industria",
     email: "Correo electrónico",
@@ -58,10 +59,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function formatValue(value: unknown): string {
-    if (value === undefined || value === null || value === "") return "No especificado";
-    if (Array.isArray(value)) return value.join(", ");
-    if (typeof value === "boolean") return value ? "Sí" : "No";
-    return String(value);
+    return translateValue(value);
 }
 
 function getLabel(key: string): string {

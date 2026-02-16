@@ -8,8 +8,10 @@ interface BriefingData {
     extraData: Record<string, unknown>;
 }
 
+import { translateValue } from "./valueLabels";
+
 const FIELD_LABELS: Record<string, string> = {
-    clientName: "Nombre completo",
+    clientName: "Nombre y Apellido",
     businessName: "Nombre del negocio",
     industry: "Rubro / Industria",
     email: "Correo electrónico",
@@ -47,10 +49,8 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function formatValue(value: unknown): string {
-    if (value === undefined || value === null || value === "") return "";
-    if (Array.isArray(value)) return value.join(", ");
-    if (typeof value === "boolean") return value ? "Sí" : "No";
-    return String(value);
+    const result = translateValue(value);
+    return result === "No especificado" ? "" : result;
 }
 
 function getLabel(key: string): string {
@@ -131,8 +131,8 @@ export function generateEmailHtml(data: BriefingData): string {
 
             <!-- Quick summary -->
             <div style="display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;">
-                ${designStyle ? `<span style="background: #ede9fe; color: #7c3aed; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;">🎨 ${designStyle}</span>` : ""}
-                ${deadline ? `<span style="background: #fef3c7; color: #d97706; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;">⏰ ${deadline}</span>` : ""}
+                ${designStyle ? `<span style="background: #ede9fe; color: #7c3aed; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;">🎨 ${translateValue(designStyle)}</span>` : ""}
+                ${deadline ? `<span style="background: #fef3c7; color: #d97706; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;">⏰ ${translateValue(deadline)}</span>` : ""}
                 ${primaryColor ? `<span style="background: #f3f4f6; color: #374151; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;">🎨 ${primaryColor}</span>` : ""}
             </div>
 
@@ -141,7 +141,7 @@ export function generateEmailHtml(data: BriefingData): string {
             <div style="margin-bottom: 24px;">
                 <h3 style="color: #374151; font-size: 15px; margin: 0 0 8px 0;">📑 Secciones seleccionadas:</h3>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    ${sections.map((s: string) => `<span style="background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${s.replace(/_/g, " ")}</span>`).join("")}
+                    ${sections.map((s: string) => `<span style="background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${translateValue(s)}</span>`).join("")}
                 </div>
             </div>` : ""}
 
@@ -150,7 +150,7 @@ export function generateEmailHtml(data: BriefingData): string {
             <div style="margin-bottom: 24px;">
                 <h3 style="color: #374151; font-size: 15px; margin: 0 0 8px 0;">⚡ Extras solicitados:</h3>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    ${features.map((f: string) => `<span style="background: #fce7f3; color: #be185d; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${f.replace(/_/g, " ")}</span>`).join("")}
+                    ${features.map((f: string) => `<span style="background: #fce7f3; color: #be185d; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${translateValue(f)}</span>`).join("")}
                 </div>
             </div>` : ""}
 

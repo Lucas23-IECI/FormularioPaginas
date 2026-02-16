@@ -16,7 +16,7 @@ export const landingConfig: BriefingTypeConfig = {
             fields: [
                 {
                     id: "clientName",
-                    label: "Tu nombre completo",
+                    label: "Tu nombre y apellido",
                     type: "text",
                     placeholder: "Ej: Juan Pérez",
                     required: true,
