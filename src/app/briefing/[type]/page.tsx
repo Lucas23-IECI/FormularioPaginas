@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { BriefingFormProvider, useBriefingForm } from "@/modules/briefingEngine/context";
 import { StepRenderer } from "@/modules/briefingEngine/StepRenderer";
@@ -58,17 +58,66 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
         currentStep,
         nextStep,
         prevStep,
+        setStep,
         setConfig,
         submitForm,
         isStepValid,
         isSubmitting,
         totalSteps,
+        formData,
     } = useBriefingForm();
 
     const router = useRouter();
     const [showPreview, setShowPreview] = useState(false);
     const [fullscreenPreview, setFullscreenPreview] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // ── History API: sync steps with browser back/forward ──
+    const isHistoryNavRef = useRef(false);
+    const initializedRef = useRef(false);
+
+    // Listen for browser back/forward (popstate)
+    useEffect(() => {
+        const handlePopstate = (e: PopStateEvent) => {
+            if (e.state && typeof e.state.briefingStep === "number") {
+                isHistoryNavRef.current = true;
+                setStep(e.state.briefingStep);
+            }
+        };
+        window.addEventListener("popstate", handlePopstate);
+        return () => window.removeEventListener("popstate", handlePopstate);
+    }, [setStep]);
+
+    // Push/replace history when step changes
+    useEffect(() => {
+        if (!initializedRef.current) {
+            initializedRef.current = true;
+            window.history.replaceState({ briefingStep: currentStep }, "");
+            return;
+        }
+        if (isHistoryNavRef.current) {
+            isHistoryNavRef.current = false;
+            return;
+        }
+        window.history.pushState({ briefingStep: currentStep }, "");
+    }, [currentStep]);
+
+    // ── Warn before leaving with unsaved data ──
+    useEffect(() => {
+        const hasData = Object.keys(formData).some((k) => {
+            const v = formData[k];
+            if (v === undefined || v === "" || v === false) return false;
+            if (Array.isArray(v) && v.length === 0) return false;
+            return true;
+        });
+        if (!hasData) return;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            e.preventDefault();
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [formData]);
 
     useEffect(() => {
         setConfig(config);
@@ -103,6 +152,24 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
 
     const closeFullscreen = useCallback(() => setFullscreenPreview(false), []);
 
+    // Handle "Volver al inicio" with confirmation if form has data
+    const handleGoHome = useCallback((e: React.MouseEvent) => {
+        const hasData = Object.keys(formData).some((k) => {
+            const v = formData[k];
+            if (v === undefined || v === "" || v === false) return false;
+            if (Array.isArray(v) && v.length === 0) return false;
+            return true;
+        });
+        if (hasData) {
+            const confirmed = window.confirm(
+                "¿Estás seguro? Se perderán los datos del formulario."
+            );
+            if (!confirmed) {
+                e.preventDefault();
+            }
+        }
+    }, [formData]);
+
     if (!currentStepConfig) return null;
 
     return (
@@ -124,6 +191,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                 <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
                     <Link
                         href="/"
+                        onClick={handleGoHome}
                         className="flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors"
                     >
                         <ChevronLeft size={16} />
