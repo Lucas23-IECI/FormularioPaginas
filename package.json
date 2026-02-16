@@ -3,19 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@prisma/adapter-better-sqlite3": "^7.4.0",
+    "@prisma/adapter-libsql": "^7.4.0",
     "@prisma/client": "^7.4.0",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/nodemailer": "^7.0.10",
     "bcryptjs": "^3.0.3",
-    "better-sqlite3": "^12.6.2",
     "docx": "^9.5.3",
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
