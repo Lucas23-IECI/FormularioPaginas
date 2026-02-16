@@ -23,6 +23,9 @@ import {
     Instagram,
     Facebook,
     Twitter,
+    Calendar,
+    Download,
+    Languages,
 } from "lucide-react";
 
 // Placeholder images per section generated via picsum with stable seeds
@@ -244,6 +247,64 @@ export function LiveLandingPreview() {
     const hasSocial = instagramUrl || facebookUrl || twitterUrl || socialMedia || phone;
     const normalizedPhone = normalizePhone(phone);
 
+    const ctaLabels: Record<string, string> = {
+        whatsapp: "Contáctanos por WhatsApp",
+        formulario: "Enviar consulta",
+        llamar: "Llámanos ahora",
+        agendar: "Agendar cita",
+        comprar: "Comprar ahora",
+        descargar: "Descargar gratis",
+    };
+
+    // ── Multi-idioma toggle ──
+    const [previewLang, setPreviewLang] = useState<"es" | "en">("es");
+    const isMultiIdioma = features.includes("multiidioma");
+
+    // Simple i18n texts for demo
+    const i18n = {
+        es: {
+            heroTitle: businessName,
+            heroCta: ctaLabels[mainCTA] || "Contáctanos",
+            services: "Nuestros Servicios",
+            about: "Sobre Nosotros",
+            testimonials: "Testimonios",
+            pricing: "Planes y Precios",
+            contact: "Contacto",
+            faq: "Preguntas Frecuentes",
+            portfolio: "Nuestro Portafolio",
+            team: "Nuestro Equipo",
+            blog: "Blog / Noticias",
+            stats: "Cifras y Resultados",
+            clients: "Confían en Nosotros",
+            location: "Ubicación",
+            process: "Nuestro Proceso",
+            schedule: "Agendar Cita",
+            downloads: "Descargas",
+            send: "Enviar",
+        },
+        en: {
+            heroTitle: businessName,
+            heroCta: mainCTA === "whatsapp" ? "Contact via WhatsApp" : mainCTA === "llamar" ? "Call Us" : mainCTA === "agendar" ? "Schedule" : mainCTA === "comprar" ? "Buy Now" : "Contact Us",
+            services: "Our Services",
+            about: "About Us",
+            testimonials: "Testimonials",
+            pricing: "Plans & Pricing",
+            contact: "Contact",
+            faq: "FAQ",
+            portfolio: "Our Portfolio",
+            team: "Our Team",
+            blog: "Blog / News",
+            stats: "Numbers & Results",
+            clients: "They Trust Us",
+            location: "Location",
+            process: "Our Process",
+            schedule: "Schedule Appointment",
+            downloads: "Downloads",
+            send: "Send",
+        },
+    };
+    const t = i18n[previewLang];
+
     // ── Refs for smart scroll ──────────────────────────────
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -294,15 +355,6 @@ export function LiveLandingPreview() {
         prevFeaturesRef.current = [...features];
     }, [sections, features]);
 
-    const ctaLabels: Record<string, string> = {
-        whatsapp: "Contáctanos por WhatsApp",
-        formulario: "Enviar consulta",
-        llamar: "Llámanos ahora",
-        agendar: "Agendar cita",
-        comprar: "Comprar ahora",
-        descargar: "Descargar gratis",
-    };
-
     const style = getStylePreset(designStyle, primaryColor);
     const { isDark, fontClass } = style;
     const bgClass = style.bg;
@@ -329,6 +381,20 @@ export function LiveLandingPreview() {
                         <span>www.{businessName.toLowerCase().replace(/\s+/g, "")}.cl</span>
                     </div>
                 </div>
+                {/* Multi-idioma selector */}
+                {isMultiIdioma && (
+                    <div className="flex items-center gap-1">
+                        <Languages size={10} className="text-white/40" />
+                        <button
+                            onClick={() => setPreviewLang("es")}
+                            className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${previewLang === "es" ? "bg-indigo-500 text-white" : "text-white/40 hover:text-white/70"}`}
+                        >ES</button>
+                        <button
+                            onClick={() => setPreviewLang("en")}
+                            className={`text-[9px] px-1.5 py-0.5 rounded transition-colors ${previewLang === "en" ? "bg-indigo-500 text-white" : "text-white/40 hover:text-white/70"}`}
+                        >EN</button>
+                    </div>
+                )}
             </div>
 
             {/* Page Preview — scrollable */}
@@ -350,7 +416,7 @@ export function LiveLandingPreview() {
                             />
                             <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
                                 {/* Social icons bar in hero header */}
-                                {(hasSocial || features.includes("redes_sociales")) && (
+                                {(hasSocial || features.includes("whatsapp_button")) && (
                                     <div className="flex items-center gap-1.5 mb-2">
                                         {normalizedPhone && (
                                             <a href={`https://wa.me/${normalizedPhone}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full flex items-center justify-center hover:scale-110 transition-transform no-underline" style={{ backgroundColor: "#25D366" }} title="WhatsApp">
@@ -374,7 +440,7 @@ export function LiveLandingPreview() {
                                         )}
                                     </div>
                                 )}
-                                <h3 className={`text-lg font-bold ${style.isDark || designStyle === "corporativo" ? "text-white" : textClass} mb-1 drop-shadow-lg`}>{businessName}</h3>
+                                <h3 className={`text-lg font-bold ${style.isDark || designStyle === "corporativo" ? "text-white" : textClass} mb-1 drop-shadow-lg`}>{t.heroTitle}</h3>
                                 {industry && (
                                     <p className={`text-[10px] ${style.isDark || designStyle === "corporativo" ? "text-white/70" : subtextClass} mb-3 capitalize`}>{industry.replace(/_/g, " ")}</p>
                                 )}
@@ -386,9 +452,11 @@ export function LiveLandingPreview() {
                                     style={{ backgroundColor: accentColor }}
                                 >
                                     <span className="flex items-center gap-1">
-                                        {ctaLabels[mainCTA] || "Contáctanos"} <ArrowRight size={10} />
+                                        {t.heroCta} <ArrowRight size={10} />
                                     </span>
                                 </a>
+                                {/* Extra spacing below CTA for visual balance */}
+                                <div className="h-4" />
                             </div>
                         </div>
                     </div>
@@ -405,7 +473,7 @@ export function LiveLandingPreview() {
                             {/* ─── Servicios ─── */}
                             {section === "servicios" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Briefcase size={10} />} title="Nuestros Servicios" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<Briefcase size={10} />} title={t.services} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {sectionImages.servicios.map((src, i) => (
                                             <div key={i} className={`${cardBg} ${style.borderRadius} ${style.shadow} overflow-hidden transition-colors`}>
@@ -423,7 +491,7 @@ export function LiveLandingPreview() {
                             {/* ─── Sobre mí ─── */}
                             {section === "sobre_mi" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Users size={10} />} title="Sobre Nosotros" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<Users size={10} />} title={t.about} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="flex gap-3 items-center">
                                         <img
                                             src={sectionImages.sobre_mi[0]}
@@ -440,7 +508,7 @@ export function LiveLandingPreview() {
                             {/* ─── Portafolio ─── */}
                             {section === "portafolio" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<ImageIcon size={10} />} title="Nuestro Portafolio" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<ImageIcon size={10} />} title={t.portfolio} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="grid grid-cols-4 gap-1">
                                         {sectionImages.portafolio.map((src, i) => (
                                             <img
@@ -457,7 +525,7 @@ export function LiveLandingPreview() {
                             {/* ─── Testimonios ─── */}
                             {section === "testimonios" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Star size={10} />} title="Testimonios" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<Star size={10} />} title={t.testimonials} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className={`${cardBg} ${style.borderRadius} ${style.shadow} p-3 transition-colors`}>
                                         <div className="flex gap-0.5 mb-1.5">
                                             {[1, 2, 3, 4, 5].map((i) => (
@@ -476,7 +544,7 @@ export function LiveLandingPreview() {
                             {/* ─── Precios ─── */}
                             {section === "precios" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<DollarSign size={10} />} title="Planes y Precios" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<DollarSign size={10} />} title={t.pricing} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="grid grid-cols-3 gap-1.5">
                                         {["Básico", "Pro", "Premium"].map((plan, i) => (
                                             <div
@@ -496,7 +564,7 @@ export function LiveLandingPreview() {
                             {/* ─── Proceso ─── */}
                             {section === "proceso" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<RefreshCw size={10} />} title="Nuestro Proceso" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<RefreshCw size={10} />} title={t.process} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="flex items-center gap-1">
                                         {copy.processSteps.map((stepLabel, i) => (
                                             <React.Fragment key={i}>
@@ -519,7 +587,7 @@ export function LiveLandingPreview() {
                             {/* ─── Estadísticas ─── */}
                             {section === "estadisticas" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<BarChart3 size={10} />} title="Cifras y Resultados" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<BarChart3 size={10} />} title={t.stats} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="grid grid-cols-3 gap-2 text-center">
                                         {[{ n: "150+", l: "Proyectos" }, { n: "98%", l: "Satisfacción" }, { n: "5★", l: "Rating" }].map(({ n, l }) => (
                                             <div key={l}>
@@ -534,7 +602,7 @@ export function LiveLandingPreview() {
                             {/* ─── Equipo ─── */}
                             {section === "equipo" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Users size={10} />} title="Nuestro Equipo" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<Users size={10} />} title={t.team} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="flex justify-center gap-3">
                                         {sectionImages.equipo.map((src, i) => (
                                             <div key={i} className="text-center">
@@ -549,7 +617,7 @@ export function LiveLandingPreview() {
                             {/* ─── FAQ ─── */}
                             {section === "faq" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<HelpCircle size={10} />} title="Preguntas Frecuentes" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<HelpCircle size={10} />} title={t.faq} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="space-y-1">
                                         {copy.faqQuestions.map((q, i) => (
                                             <div key={i} className={`${cardBg} ${style.borderRadius} ${style.shadow} p-2 flex items-center justify-between transition-colors`}>
@@ -564,7 +632,7 @@ export function LiveLandingPreview() {
                             {/* ─── Clientes ─── */}
                             {section === "clientes" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Building2 size={10} />} title="Confían en Nosotros" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<Building2 size={10} />} title={t.clients} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="flex justify-center gap-3">
                                         {sectionImages.clientes.map((src, i) => (
                                             <img
@@ -581,7 +649,7 @@ export function LiveLandingPreview() {
                             {/* ─── Blog ─── */}
                             {section === "blog" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<FileText size={10} />} title="Blog / Noticias" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<FileText size={10} />} title={t.blog} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div className="grid grid-cols-2 gap-1.5">
                                         {sectionImages.blog.map((src, i) => (
                                             <div key={i} className={`${cardBg} ${style.borderRadius} ${style.shadow} overflow-hidden transition-colors`}>
@@ -599,7 +667,7 @@ export function LiveLandingPreview() {
                             {/* ─── Contacto ─── */}
                             {section === "contacto" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<Mail size={10} />} title="Contacto" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<Mail size={10} />} title={t.contact} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <p className={`text-[8px] ${subtextClass} leading-relaxed`}>{copy.contactText}</p>
                                     <div className={`flex gap-4 text-[9px] ${subtextClass}`}>
                                         {email ? (
@@ -616,7 +684,7 @@ export function LiveLandingPreview() {
                                     <div className={`${cardBg} ${style.borderRadius} p-2 space-y-1 transition-colors`}>
                                         <div className={`h-5 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
                                         <div className={`h-5 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
-                                        <a href={ctaHref} target="_blank" rel="noopener noreferrer" className={`block h-5 ${style.borderRadius} w-1/3 text-white text-[8px] flex items-center justify-center no-underline`} style={{ backgroundColor: accentColor }}>Enviar</a>
+                                        <a href={ctaHref} target="_blank" rel="noopener noreferrer" className={`block h-5 ${style.borderRadius} w-1/3 text-white text-[8px] flex items-center justify-center no-underline`} style={{ backgroundColor: accentColor }}>{t.send}</a>
                                     </div>
                                 </div>
                             )}
@@ -624,7 +692,7 @@ export function LiveLandingPreview() {
                             {/* ─── Ubicación ─── */}
                             {section === "ubicacion" && (
                                 <div className="space-y-2">
-                                    <SectionTitle icon={<MapPin size={10} />} title="Ubicación" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                                    <SectionTitle icon={<MapPin size={10} />} title={t.location} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                                     <div
                                         className="h-20 rounded-lg flex items-center justify-center"
                                         style={{ backgroundColor: `${accentColor}08` }}
@@ -661,11 +729,53 @@ export function LiveLandingPreview() {
                 )}
                 {features.includes("formulario_contacto") && !activeSections.includes("contacto") && (
                     <div ref={(el) => { sectionRefs.current["formulario_contacto"] = el; }} className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
-                        <SectionTitle icon={<Mail size={10} />} title="Formulario de Contacto" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                        <SectionTitle icon={<Mail size={10} />} title={t.contact} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                         <div className={`${cardBg} ${style.borderRadius} p-2 space-y-1 transition-colors`}>
                             <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
                             <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
-                            <div className={`h-4 ${style.borderRadius} w-1/3 text-white text-[7px] flex items-center justify-center`} style={{ backgroundColor: accentColor }}>Enviar</div>
+                            <div className={`h-4 ${style.borderRadius} w-1/3 text-white text-[7px] flex items-center justify-center`} style={{ backgroundColor: accentColor }}>{t.send}</div>
+                        </div>
+                    </div>
+                )}
+                {features.includes("formulario_avanzado") && (
+                    <div ref={(el) => { sectionRefs.current["formulario_avanzado"] = el; }} className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
+                        <SectionTitle icon={<FileText size={10} />} title={previewLang === "en" ? "Advanced Form" : "Formulario Avanzado"} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                        <div className={`${cardBg} ${style.borderRadius} p-2 space-y-1 transition-colors`}>
+                            <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
+                            <div className="grid grid-cols-2 gap-1">
+                                <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded`} />
+                                <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded`} />
+                            </div>
+                            <div className={`h-8 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
+                            <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
+                            <div className={`h-4 ${style.borderRadius} w-1/3 text-white text-[7px] flex items-center justify-center`} style={{ backgroundColor: accentColor }}>{t.send}</div>
+                        </div>
+                    </div>
+                )}
+                {features.includes("agenda") && (
+                    <div ref={(el) => { sectionRefs.current["agenda"] = el; }} className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
+                        <SectionTitle icon={<Calendar size={10} />} title={t.schedule} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                        <div className={`${cardBg} ${style.borderRadius} p-3 text-center transition-colors`}>
+                            <Calendar size={16} style={{ color: accentColor }} className="mx-auto mb-1" />
+                            <p className={`text-[8px] ${textClass} font-medium mb-1`}>{previewLang === "en" ? "Book your appointment" : "Reserva tu cita"}</p>
+                            <div className={`inline-block px-3 py-1 ${style.borderRadius} text-white text-[8px]`} style={{ backgroundColor: accentColor }}>{t.schedule}</div>
+                        </div>
+                    </div>
+                )}
+                {features.includes("descargables") && (
+                    <div ref={(el) => { sectionRefs.current["descargables"] = el; }} className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
+                        <SectionTitle icon={<Download size={10} />} title={t.downloads} color={accentColor} textClass={textClass} headingClass={style.headingClass} />
+                        <div className={`${cardBg} ${style.borderRadius} p-3 flex items-center gap-3 transition-colors`}>
+                            <div className="w-8 h-10 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${accentColor}15` }}>
+                                <Download size={14} style={{ color: accentColor }} />
+                            </div>
+                            <div className="flex-1">
+                                <p className={`text-[8px] font-medium ${textClass}`}>{previewLang === "en" ? "Download Catalog" : "Descargar Catálogo"}</p>
+                                <p className={`text-[7px] ${subtextClass}`}>PDF — 2.4 MB</p>
+                            </div>
+                            <div className={`px-2 py-0.5 ${style.borderRadius} text-white text-[7px]`} style={{ backgroundColor: accentColor }}>
+                                <Download size={8} className="inline" />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -686,19 +796,19 @@ export function LiveLandingPreview() {
                     style={{ backgroundColor: `${accentColor}10` }}
                 >
                     {/* Social indicators */}
-                    {(hasSocial || features.includes("redes_sociales")) && (
+                    {hasSocial && (
                         <div className="flex justify-center gap-1.5 mb-2">
                             {normalizedPhone && (
                                 <a href={`https://wa.me/${normalizedPhone}`} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full flex items-center justify-center hover:scale-110 transition-transform no-underline" style={{ backgroundColor: "#25D366" }} title="WhatsApp"><MessageCircle size={8} className="text-white" /></a>
                             )}
-                            {(instagramUrl || features.includes("redes_sociales")) && (
-                                <a href={instagramUrl ? (instagramUrl.startsWith("http") ? instagramUrl : `https://instagram.com/${instagramUrl.replace("@", "")}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-pink-500 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Instagram"><Instagram size={8} /></a>
+                            {instagramUrl && (
+                                <a href={instagramUrl.startsWith("http") ? instagramUrl : `https://instagram.com/${instagramUrl.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-pink-500 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Instagram"><Instagram size={8} /></a>
                             )}
-                            {(facebookUrl || features.includes("redes_sociales")) && (
-                                <a href={facebookUrl ? (facebookUrl.startsWith("http") ? facebookUrl : `https://facebook.com/${facebookUrl}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-blue-600 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Facebook"><Facebook size={8} /></a>
+                            {facebookUrl && (
+                                <a href={facebookUrl.startsWith("http") ? facebookUrl : `https://facebook.com/${facebookUrl}`} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-blue-600 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Facebook"><Facebook size={8} /></a>
                             )}
-                            {(twitterUrl || features.includes("redes_sociales")) && (
-                                <a href={twitterUrl ? (twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-gray-800 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="X / Twitter"><Twitter size={8} /></a>
+                            {twitterUrl && (
+                                <a href={twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-gray-800 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="X / Twitter"><Twitter size={8} /></a>
                             )}
                         </div>
                     )}

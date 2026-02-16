@@ -71,6 +71,16 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
     const [showPreview, setShowPreview] = useState(false);
     const [fullscreenPreview, setFullscreenPreview] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Auto-dismiss error after 3 seconds
+    const setErrorWithDismiss = useCallback((msg: string | null) => {
+        if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+        setError(msg);
+        if (msg) {
+            errorTimerRef.current = setTimeout(() => setError(null), 3000);
+        }
+    }, []);
 
     // ── History API: sync steps with browser back/forward ──
     const isHistoryNavRef = useRef(false);
@@ -146,7 +156,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
             await submitForm();
             router.push("/briefing/success");
         } catch {
-            setError("Hubo un error al enviar. Por favor intenta de nuevo.");
+            setErrorWithDismiss("Hubo un error al enviar. Por favor intenta de nuevo.");
         }
     };
 
@@ -227,10 +237,17 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                     <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">
                         <StepRenderer step={currentStepConfig} />
 
-                        {/* Error */}
+                        {/* Error — auto-dismisses in 3s, can be closed manually */}
                         {error && (
-                            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                                {error}
+                            <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm flex items-center justify-between animate-fadeIn">
+                                <span>{error}</span>
+                                <button
+                                    onClick={() => setError(null)}
+                                    className="ml-3 text-red-400/60 hover:text-red-400 transition-colors flex-shrink-0"
+                                    aria-label="Cerrar error"
+                                >
+                                    <X size={14} />
+                                </button>
                             </div>
                         )}
 

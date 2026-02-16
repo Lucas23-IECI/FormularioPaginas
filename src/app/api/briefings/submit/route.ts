@@ -39,40 +39,54 @@ function sanitizeDeep(obj: unknown): unknown {
     return obj;
 }
 
+// ── Error response builders ───────────────────────────────
+type ErrorCode = "RATE_LIMITED" | "VALIDATION_ERROR" | "DB_ERROR" | "DOCS_ERROR" | "EMAIL_ERROR" | "UNKNOWN";
+
+function errorResponse(code: ErrorCode, message: string, status: number) {
+    return NextResponse.json({ ok: false, code, message }, { status });
+}
+
 // ── POST /api/briefings/submit ────────────────────────────
 export async function POST(request: NextRequest) {
+    let stage = "init";
+
     try {
-        // ── Rate limiting by IP ──
+        // ── Stage: rate-limit ──
+        stage = "rate-limit";
         const forwarded = request.headers.get("x-forwarded-for");
         const ip = forwarded?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
         if (!checkRateLimit(ip)) {
-            return NextResponse.json(
-                { error: "Demasiadas solicitudes. Intenta en un minuto." },
-                { status: 429 }
-            );
+            return errorResponse("RATE_LIMITED", "Demasiadas solicitudes. Intenta en un minuto.", 429);
         }
 
-        // ── Parse & validate body ──
-        const body = await request.json();
+        // ── Stage: parse ──
+        stage = "parse";
+        let body;
+        try {
+            body = await request.json();
+        } catch {
+            return errorResponse("VALIDATION_ERROR", "Error al leer los datos del formulario.", 400);
+        }
+
         const { type, clientName, clientEmail, contactData, contentData, designData, extraData } = body;
 
+        // ── Stage: validate ──
+        stage = "validate";
         if (!type || !clientName) {
-            return NextResponse.json(
-                { error: "type and clientName are required" },
-                { status: 400 }
-            );
+            return errorResponse("VALIDATION_ERROR", "type y clientName son obligatorios.", 400);
         }
 
         const validTypes = ["LANDING", "WEB_COMERCIAL", "ECOMMERCE"];
         if (!validTypes.includes(type)) {
-            return NextResponse.json({ error: "Invalid briefing type" }, { status: 400 });
+            return errorResponse("VALIDATION_ERROR", "Tipo de briefing inválido.", 400);
         }
 
         if (clientEmail && !isValidEmail(clientEmail)) {
-            return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+            return errorResponse("VALIDATION_ERROR", "Formato de email inválido.", 400);
         }
 
-        // ── Sanitize all data ──
+        // ── Stage: sanitize ──
+        stage = "sanitize";
         const safeContact = sanitizeDeep(contactData || {}) as Record<string, unknown>;
         const safeContent = sanitizeDeep(contentData || {}) as Record<string, unknown>;
         const safeDesign = sanitizeDeep(designData || {}) as Record<string, unknown>;
@@ -80,20 +94,47 @@ export async function POST(request: NextRequest) {
         const safeClientName = sanitizeStr(clientName, 500);
         const safeClientEmail = sanitizeStr(clientEmail || "", 500);
 
-        // ── Save to database ──
-        const briefing = await prisma.briefing.create({
-            data: {
-                type,
-                clientName: safeClientName,
-                clientEmail: safeClientEmail,
-                contactData: JSON.stringify(safeContact),
-                contentData: JSON.stringify(safeContent),
-                designData: JSON.stringify(safeDesign),
-                extraData: JSON.stringify(safeExtra),
-            },
-        });
+        // ── Stage: db ──
+        stage = "db";
+        let briefingId: string;
+        try {
+            const briefing = await prisma.briefing.create({
+                data: {
+                    type,
+                    clientName: safeClientName,
+                    clientEmail: safeClientEmail,
+                    contactData: JSON.stringify(safeContact),
+                    contentData: JSON.stringify(safeContent),
+                    designData: JSON.stringify(safeDesign),
+                    extraData: JSON.stringify(safeExtra),
+                },
+            });
+            briefingId = briefing.id;
+        } catch (dbError) {
+            // Log Prisma-specific info server-side only
+            const err = dbError as Record<string, unknown>;
+            console.error(`[Submit][${stage}] DB Error:`, {
+                message: err.message || "Unknown",
+                code: err.code,
+                meta: err.meta,
+                clientVersion: err.clientVersion,
+            });
+            return errorResponse("DB_ERROR", "Error al guardar el briefing. Intenta de nuevo.", 500);
+        }
 
-        // ── Generate documents ──
+        // ── From here on, DB is saved. Never return 500. ──
+        // Use degraded mode for docs and email.
+        const result = {
+            ok: true,
+            id: briefingId,
+            status: "created" as const,
+            docsGenerated: false,
+            emailSent: false,
+            clientEmailSent: false,
+        };
+
+        // ── Stage: docs (degraded) ──
+        stage = "docs";
         const briefingData = {
             type,
             clientName: safeClientName,
@@ -104,79 +145,91 @@ export async function POST(request: NextRequest) {
             extraData: safeExtra,
         };
 
-        const [docxBuffer, xlsxBuffer] = await Promise.all([
-            generateDocxBuffer(briefingData),
-            generateXlsxBuffer(briefingData),
-        ]);
+        let docxBuffer: Buffer | null = null;
+        let xlsxBuffer: Buffer | null = null;
+        let emailHtml = "";
 
-        const emailHtml = generateEmailHtml(briefingData);
-
-        // ── Build attachments ──
-        const businessName = (safeContact.businessName as string) || safeClientName;
-        const safeFileName = businessName
-            .toLowerCase()
-            .replace(/[^a-z0-9\s-]/g, "")
-            .replace(/\s+/g, "-")
-            .slice(0, 50);
-
-        const attachments = [
-            {
-                filename: `briefing-${safeFileName}.docx`,
-                content: docxBuffer,
-                contentType:
-                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            },
-            {
-                filename: `briefing-${safeFileName}.xlsx`,
-                content: xlsxBuffer,
-                contentType:
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            },
-        ];
-
-        // ── Send emails via emailService (OAuth2 + fallback) ──
-        const emailFrom = process.env.EMAIL_FROM;
-        let adminEmailSent = false;
-        let clientEmailSent = false;
-
-        if (emailFrom) {
-            // Send to admin
-            const adminResult = await sendEmail({
-                to: emailFrom,
-                subject: sanitizeSubject(`Nuevo Briefing – ${businessName}`),
-                html: emailHtml,
-                attachments,
-            });
-            adminEmailSent = adminResult.success;
-
-            // Send to client (if valid email provided)
-            if (safeClientEmail && isValidEmail(safeClientEmail)) {
-                const clientResult = await sendEmail({
-                    to: safeClientEmail,
-                    subject: sanitizeSubject(`Resumen de tu Briefing – ${businessName}`),
-                    html: emailHtml,
-                    attachments,
-                });
-                clientEmailSent = clientResult.success;
-            }
-        } else {
-            console.warn("[Submit] EMAIL_FROM not configured — skipping email send.");
+        try {
+            [docxBuffer, xlsxBuffer] = await Promise.all([
+                generateDocxBuffer(briefingData),
+                generateXlsxBuffer(briefingData),
+            ]);
+            emailHtml = generateEmailHtml(briefingData);
+            result.docsGenerated = true;
+        } catch (docsError) {
+            console.error(`[Submit][${stage}] Docs generation failed:`, docsError instanceof Error ? docsError.message : docsError);
+            // Continue without docs — DB is already saved
         }
 
-        return NextResponse.json(
-            {
-                id: briefing.id,
-                status: "created",
-                emailSent: adminEmailSent,
-                clientEmailSent,
-            },
-            { status: 201 }
-        );
+        // ── Stage: email (degraded) ──
+        const emailFrom = process.env.EMAIL_FROM;
+        const emailEnabled = process.env.EMAIL_ENABLED !== "false"; // default true
+
+        if (emailFrom && emailEnabled && result.docsGenerated) {
+            // Build attachments only if docs were generated
+            const businessName = (safeContact.businessName as string) || safeClientName;
+            const safeFileName = businessName
+                .toLowerCase()
+                .replace(/[^a-z0-9\s-]/g, "")
+                .replace(/\s+/g, "-")
+                .slice(0, 50);
+
+            const attachments = docxBuffer && xlsxBuffer ? [
+                {
+                    filename: `briefing-${safeFileName}.docx`,
+                    content: docxBuffer,
+                    contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                },
+                {
+                    filename: `briefing-${safeFileName}.xlsx`,
+                    content: xlsxBuffer,
+                    contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                },
+            ] : [];
+
+            // ── Stage: email-admin ──
+            stage = "email-admin";
+            try {
+                const adminResult = await sendEmail({
+                    to: emailFrom,
+                    subject: sanitizeSubject(`Nuevo Briefing – ${businessName}`),
+                    html: emailHtml || `<p>Nuevo briefing recibido de ${safeClientName}</p>`,
+                    attachments,
+                });
+                result.emailSent = adminResult.success;
+            } catch (emailError) {
+                console.error(`[Submit][${stage}] Admin email failed:`, emailError instanceof Error ? emailError.message : emailError);
+            }
+
+            // ── Stage: email-client ──
+            stage = "email-client";
+            if (safeClientEmail && isValidEmail(safeClientEmail)) {
+                try {
+                    const clientResult = await sendEmail({
+                        to: safeClientEmail,
+                        subject: sanitizeSubject(`Resumen de tu Briefing – ${businessName}`),
+                        html: emailHtml || `<p>Gracias por tu briefing, ${safeClientName}.</p>`,
+                        attachments,
+                    });
+                    result.clientEmailSent = clientResult.success;
+                } catch (emailError) {
+                    console.error(`[Submit][${stage}] Client email failed:`, emailError instanceof Error ? emailError.message : emailError);
+                }
+            }
+        } else if (!emailFrom || !emailEnabled) {
+            console.warn("[Submit] Email disabled or EMAIL_FROM not configured — skipping.");
+        }
+
+        return NextResponse.json(result, { status: 201 });
+
     } catch (error) {
-        console.error("[Submit] Error:", error instanceof Error ? error.message : error);
-        return NextResponse.json(
-            { error: "Internal server error" },
-            { status: 500 }
-        );
+        // Catch-all for truly unexpected errors
+        const err = error instanceof Error ? error : new Error(String(error));
+        console.error(`[Submit][${stage}] Unexpected error:`, {
+            stage,
+            message: err.message,
+            stack: err.stack,
+        });
+        return errorResponse("UNKNOWN", "Error interno del servidor.", 500);
     }
 }
