@@ -31,7 +31,10 @@ function FullscreenPreviewModal({ onClose }: { onClose: () => void }) {
     }, []);
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fadeIn"
+            onClick={onClose}
+        >
             {/* Close button */}
             <button
                 onClick={onClose}
@@ -39,8 +42,11 @@ function FullscreenPreviewModal({ onClose }: { onClose: () => void }) {
             >
                 <X size={20} />
             </button>
-            {/* Preview container — fills viewport with scroll */}
-            <div className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl">
+            {/* Preview container — click inside must NOT close */}
+            <div
+                className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <LiveLandingPreview />
             </div>
         </div>
