@@ -146,7 +146,7 @@ export function BriefingFormProvider({ children }: { children: ReactNode }) {
                 extraData,
             };
 
-            const response = await fetch("/api/briefings", {
+            const response = await fetch("/api/briefings/submit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),

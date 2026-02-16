@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useBriefingForm } from "@/modules/briefingEngine/context";
 import { getGenericCopy } from "@/lib/genericCopy";
 import {
@@ -20,6 +20,9 @@ import {
     FileText,
     Image as ImageIcon,
     Briefcase,
+    Instagram,
+    Facebook,
+    Twitter,
 } from "lucide-react";
 
 // Placeholder images per section generated via picsum with stable seeds
@@ -211,6 +214,11 @@ function buildCtaHref(cta: string, phone: string, email: string): string {
     }
 }
 
+// ── Normalize phone for WhatsApp link ──────────────────────
+function normalizePhone(phone: string): string {
+    return phone.replace(/[\s+\-()]/g, "");
+}
+
 export function LiveLandingPreview() {
     // ── Read directly from context — single source of truth ──
     const { formData } = useBriefingForm();
@@ -233,7 +241,58 @@ export function LiveLandingPreview() {
     const additionalContent = (formData.additionalContent as string) || "";
 
     const copy = getGenericCopy({ businessName, industry });
-    const hasSocial = instagramUrl || facebookUrl || twitterUrl || socialMedia;
+    const hasSocial = instagramUrl || facebookUrl || twitterUrl || socialMedia || phone;
+    const normalizedPhone = normalizePhone(phone);
+
+    // ── Refs for smart scroll ──────────────────────────────
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const footerRef = useRef<HTMLDivElement>(null);
+
+    // ── Floating social visibility (hide near footer) ──────
+    const [showFloating, setShowFloating] = useState(true);
+
+    const handleScroll = useCallback(() => {
+        const container = scrollContainerRef.current;
+        const footer = footerRef.current;
+        if (!container || !footer) { setShowFloating(true); return; }
+        const containerRect = container.getBoundingClientRect();
+        const footerRect = footer.getBoundingClientRect();
+        // Hide floating when footer is within 60px of container bottom
+        const threshold = 60;
+        setShowFloating(footerRect.top - containerRect.bottom > -threshold);
+    }, []);
+
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        container.addEventListener("scroll", handleScroll, { passive: true });
+        return () => container.removeEventListener("scroll", handleScroll);
+    }, [handleScroll]);
+
+    // ── Smart scroll: scroll to newly activated sections/extras ──
+    const prevSectionsRef = useRef<string[]>([]);
+    const prevFeaturesRef = useRef<string[]>([]);
+
+    useEffect(() => {
+        const prevSections = prevSectionsRef.current;
+        const prevFeatures = prevFeaturesRef.current;
+
+        // Find newly added sections
+        const newSection = sections.find(s => !prevSections.includes(s));
+        // Find newly added features
+        const newFeature = features.find(f => !prevFeatures.includes(f));
+
+        const scrollTarget = newSection || newFeature;
+        if (scrollTarget && sectionRefs.current[scrollTarget]) {
+            setTimeout(() => {
+                sectionRefs.current[scrollTarget]?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 100);
+        }
+
+        prevSectionsRef.current = [...sections];
+        prevFeaturesRef.current = [...features];
+    }, [sections, features]);
 
     const ctaLabels: Record<string, string> = {
         whatsapp: "Contáctanos por WhatsApp",
@@ -273,11 +332,12 @@ export function LiveLandingPreview() {
             </div>
 
             {/* Page Preview — scrollable */}
-            <div className={`${bgClass} overflow-y-auto transition-colors duration-300`} style={{ maxHeight: "500px" }}>
+            <div ref={scrollContainerRef} className={`${bgClass} overflow-y-auto transition-colors duration-300`} style={{ maxHeight: "500px" }}>
 
                 {/* Hero Section — always present or if selected */}
                 {(activeSections.includes("hero") || activeSections.length === 0) && (
                     <div
+                        ref={(el) => { sectionRefs.current["hero"] = el; }}
                         className="relative overflow-hidden transition-all duration-300"
                         style={{ background: style.heroOverlay }}
                     >
@@ -289,6 +349,31 @@ export function LiveLandingPreview() {
                                 style={{ filter: `sepia(0.3) hue-rotate(${parseInt(primaryColor.slice(1), 16) % 360}deg)` }}
                             />
                             <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+                                {/* Social icons bar in hero header */}
+                                {(hasSocial || features.includes("redes_sociales")) && (
+                                    <div className="flex items-center gap-1.5 mb-2">
+                                        {normalizedPhone && (
+                                            <a href={`https://wa.me/${normalizedPhone}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full flex items-center justify-center hover:scale-110 transition-transform no-underline" style={{ backgroundColor: "#25D366" }} title="WhatsApp">
+                                                <MessageCircle size={10} className="text-white" />
+                                            </a>
+                                        )}
+                                        {instagramUrl && (
+                                            <a href={instagramUrl.startsWith("http") ? instagramUrl : `https://instagram.com/${instagramUrl.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-pink-500 flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Instagram">
+                                                <Instagram size={10} className="text-white" />
+                                            </a>
+                                        )}
+                                        {facebookUrl && (
+                                            <a href={facebookUrl.startsWith("http") ? facebookUrl : `https://facebook.com/${facebookUrl}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Facebook">
+                                                <Facebook size={10} className="text-white" />
+                                            </a>
+                                        )}
+                                        {twitterUrl && (
+                                            <a href={twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center hover:scale-110 transition-transform no-underline" title="X / Twitter">
+                                                <Twitter size={10} className="text-white" />
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
                                 <h3 className={`text-lg font-bold ${style.isDark || designStyle === "corporativo" ? "text-white" : textClass} mb-1 drop-shadow-lg`}>{businessName}</h3>
                                 {industry && (
                                     <p className={`text-[10px] ${style.isDark || designStyle === "corporativo" ? "text-white/70" : subtextClass} mb-3 capitalize`}>{industry.replace(/_/g, " ")}</p>
@@ -314,6 +399,7 @@ export function LiveLandingPreview() {
                     {activeSections.filter(s => s !== "hero").map((section) => (
                         <div
                             key={section}
+                            ref={(el) => { sectionRefs.current[section] = el; }}
                             className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}
                         >
                             {/* ─── Servicios ─── */}
@@ -563,7 +649,7 @@ export function LiveLandingPreview() {
 
                 {/* Extra features — wired from the features multiselect */}
                 {features.includes("google_maps") && !activeSections.includes("ubicacion") && (
-                    <div className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
+                    <div ref={(el) => { sectionRefs.current["google_maps"] = el; }} className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
                         <SectionTitle icon={<MapPin size={10} />} title="Google Maps" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                         <div className={`h-16 ${style.borderRadius} flex items-center justify-center`} style={{ backgroundColor: `${accentColor}08` }}>
                             <div className="text-center">
@@ -574,7 +660,7 @@ export function LiveLandingPreview() {
                     </div>
                 )}
                 {features.includes("formulario_contacto") && !activeSections.includes("contacto") && (
-                    <div className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
+                    <div ref={(el) => { sectionRefs.current["formulario_contacto"] = el; }} className={`${style.sectionPy} border-b ${dividerColor} transition-all duration-300 animate-fadeIn`}>
                         <SectionTitle icon={<Mail size={10} />} title="Formulario de Contacto" color={accentColor} textClass={textClass} headingClass={style.headingClass} />
                         <div className={`${cardBg} ${style.borderRadius} p-2 space-y-1 transition-colors`}>
                             <div className={`h-4 ${isDark ? "bg-white/5" : "bg-gray-100"} rounded w-full`} />
@@ -595,20 +681,24 @@ export function LiveLandingPreview() {
 
                 {/* Footer */}
                 <div
+                    ref={footerRef}
                     className="px-6 py-3 text-center transition-colors duration-300"
                     style={{ backgroundColor: `${accentColor}10` }}
                 >
                     {/* Social indicators */}
                     {(hasSocial || features.includes("redes_sociales")) && (
                         <div className="flex justify-center gap-1.5 mb-2">
+                            {normalizedPhone && (
+                                <a href={`https://wa.me/${normalizedPhone}`} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full flex items-center justify-center hover:scale-110 transition-transform no-underline" style={{ backgroundColor: "#25D366" }} title="WhatsApp"><MessageCircle size={8} className="text-white" /></a>
+                            )}
                             {(instagramUrl || features.includes("redes_sociales")) && (
-                                <a href={instagramUrl ? (instagramUrl.startsWith("http") ? instagramUrl : `https://instagram.com/${instagramUrl.replace("@", "")}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-pink-500 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Instagram">IG</a>
+                                <a href={instagramUrl ? (instagramUrl.startsWith("http") ? instagramUrl : `https://instagram.com/${instagramUrl.replace("@", "")}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-pink-500 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Instagram"><Instagram size={8} /></a>
                             )}
                             {(facebookUrl || features.includes("redes_sociales")) && (
-                                <a href={facebookUrl ? (facebookUrl.startsWith("http") ? facebookUrl : `https://facebook.com/${facebookUrl}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-blue-600 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Facebook">FB</a>
+                                <a href={facebookUrl ? (facebookUrl.startsWith("http") ? facebookUrl : `https://facebook.com/${facebookUrl}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-blue-600 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="Facebook"><Facebook size={8} /></a>
                             )}
                             {(twitterUrl || features.includes("redes_sociales")) && (
-                                <a href={twitterUrl ? (twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-gray-800 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="X / Twitter">X</a>
+                                <a href={twitterUrl ? (twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`) : "#"} target="_blank" rel="noopener noreferrer" className="w-4 h-4 rounded-full bg-gray-800 text-white text-[6px] flex items-center justify-center hover:scale-110 transition-transform no-underline" title="X / Twitter"><Twitter size={8} /></a>
                             )}
                         </div>
                     )}
@@ -616,17 +706,66 @@ export function LiveLandingPreview() {
                 </div>
             </div>
 
-            {/* WhatsApp floating button */}
-            {features.includes("whatsapp_button") && (
-                <a
-                    href={buildWhatsAppUrl(phone)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-4 right-4 w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform no-underline"
-                    style={{ backgroundColor: "#25D366" }}
-                >
-                    <MessageCircle size={18} className="text-white" />
-                </a>
+            {/* Floating social buttons stack — hides near footer */}
+            {features.includes("whatsapp_button") && showFloating && (
+                <div className="absolute bottom-4 right-4 flex flex-col-reverse items-center gap-2 transition-opacity duration-300" style={{ opacity: showFloating ? 1 : 0 }}>
+                    {/* WhatsApp — always if whatsapp_button feature enabled */}
+                    {normalizedPhone ? (
+                        <a
+                            href={`https://wa.me/${normalizedPhone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform no-underline"
+                            style={{ backgroundColor: "#25D366" }}
+                            title="WhatsApp"
+                        >
+                            <MessageCircle size={18} className="text-white" />
+                        </a>
+                    ) : (
+                        <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+                            style={{ backgroundColor: "#25D366" }}
+                        >
+                            <MessageCircle size={18} className="text-white" />
+                        </div>
+                    )}
+                    {/* Instagram */}
+                    {instagramUrl && (
+                        <a
+                            href={instagramUrl.startsWith("http") ? instagramUrl : `https://instagram.com/${instagramUrl.replace("@", "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center shadow-lg hover:scale-110 transition-transform no-underline"
+                            title="Instagram"
+                        >
+                            <Instagram size={14} className="text-white" />
+                        </a>
+                    )}
+                    {/* Facebook */}
+                    {facebookUrl && (
+                        <a
+                            href={facebookUrl.startsWith("http") ? facebookUrl : `https://facebook.com/${facebookUrl}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center shadow-lg hover:scale-110 transition-transform no-underline"
+                            title="Facebook"
+                        >
+                            <Facebook size={14} className="text-white" />
+                        </a>
+                    )}
+                    {/* Twitter/X */}
+                    {twitterUrl && (
+                        <a
+                            href={twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center shadow-lg hover:scale-110 transition-transform no-underline"
+                            title="X / Twitter"
+                        >
+                            <Twitter size={14} className="text-white" />
+                        </a>
+                    )}
+                </div>
             )}
         </div>
     );
