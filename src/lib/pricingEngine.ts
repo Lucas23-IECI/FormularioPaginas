@@ -76,7 +76,7 @@ const CONTENT_PRICES = {
 };
 
 // ── Base ──────────────────────────────────────────────────
-const BASE_PRICE = 130_000;
+const BASE_PRICE = 100_000;
 
 // ── Calculador principal ──────────────────────────────────
 export function calculatePrice(formData: FormData): PricingResult {
