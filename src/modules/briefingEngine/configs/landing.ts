@@ -350,23 +350,10 @@ export const landingConfig: BriefingTypeConfig = {
                     required: true,
                     dataGroup: "extra",
                     options: [
-                        { value: "urgente", label: "🔥 Lo antes posible (1-3 días)" },
-                        { value: "pronto", label: "⚡ Esta semana" },
-                        { value: "normal", label: "📅 En 1-2 semanas" },
+                        { value: "urgente", label: "🔥 Esta semana" },
+                        { value: "pronto", label: "⚡ En 1-2 semanas" },
+                        { value: "normal", label: "📅 En 2-3 semanas" },
                         { value: "sin_prisa", label: "🐢 Sin prisa, cuando esté listo" },
-                    ],
-                },
-                {
-                    id: "budget",
-                    label: "Presupuesto aproximado (opcional)",
-                    type: "select",
-                    required: false,
-                    dataGroup: "extra",
-                    options: [
-                        { value: "basico", label: "💰 Básico" },
-                        { value: "medio", label: "💰💰 Medio" },
-                        { value: "premium", label: "💰💰💰 Premium" },
-                        { value: "no_se", label: "🤷 No tengo claro" },
                     ],
                 },
                 {

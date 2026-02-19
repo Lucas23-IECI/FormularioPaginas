@@ -10,6 +10,7 @@ import { getBriefingConfig } from "@/modules/briefingEngine";
 import { BriefingTypeConfig } from "@/types/briefing";
 import { ArrowLeft, ArrowRight, Send, Loader2, Eye, EyeOff, ChevronLeft, Maximize2, X } from "lucide-react";
 import Link from "next/link";
+import { PriceSummary } from "@/components/briefing/PriceSummary";
 
 // ── Fullscreen Preview Modal ──────────────────────────────
 function FullscreenPreviewModal({ onClose }: { onClose: () => void }) {
@@ -207,9 +208,12 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                         <ChevronLeft size={16} />
                         <span>Volver</span>
                     </Link>
-                    <h1 className="text-sm font-medium text-white/80">
-                        Briefing — {config.label}
-                    </h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-sm font-medium text-white/80">
+                            Briefing — {config.label}
+                        </h1>
+                        {config.type === "LANDING" && <PriceSummary compact />}
+                    </div>
                     {config.type === "LANDING" && (
                         <button
                             onClick={() => setShowPreview(!showPreview)}
@@ -236,6 +240,11 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                     {/* Form */}
                     <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">
                         <StepRenderer step={currentStepConfig} />
+
+                        {/* Price Summary — full breakdown on last step */}
+                        {config.type === "LANDING" && isLastStep && (
+                            <PriceSummary />
+                        )}
 
                         {/* Error — auto-dismisses in 3s, can be closed manually */}
                         {error && (

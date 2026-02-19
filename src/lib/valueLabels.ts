@@ -89,9 +89,9 @@ const VALUE_LABELS: Record<string, string> = {
     no_se: "No estoy seguro / No sé",
 
     // ── Plazo de entrega ──
-    urgente: "Lo antes posible (1-3 días)",
-    pronto: "Esta semana",
-    normal: "En 1-2 semanas",
+    urgente: "Esta semana",
+    pronto: "En 1-2 semanas",
+    normal: "En 2-3 semanas",
     sin_prisa: "Sin prisa, cuando esté listo",
 
     // ── Presupuesto ──

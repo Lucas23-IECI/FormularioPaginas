@@ -9,6 +9,8 @@ interface BriefingData {
 }
 
 import { translateValue } from "./valueLabels";
+import { calculatePrice, formatCLP } from "./pricingEngine";
+import { FormData } from "@/types/briefing";
 
 const FIELD_LABELS: Record<string, string> = {
     clientName: "Nombre y Apellido",
@@ -41,6 +43,17 @@ const FIELD_LABELS: Record<string, string> = {
     budget: "Presupuesto",
     additionalNotes: "Notas adicionales",
 };
+
+// Reconstruct FormData from briefing data groups for pricing
+function buildFormDataForPricing(data: BriefingData): FormData {
+    const fd: FormData = {};
+    for (const group of [data.contactData, data.contentData, data.designData, data.extraData]) {
+        for (const [k, v] of Object.entries(group || {})) {
+            fd[k] = v as string | string[] | boolean;
+        }
+    }
+    return fd;
+}
 
 const TYPE_LABELS: Record<string, string> = {
     LANDING: "Landing Page",
@@ -153,6 +166,28 @@ export function generateEmailHtml(data: BriefingData): string {
                     ${features.map((f: string) => `<span style="background: #fce7f3; color: #be185d; padding: 4px 10px; border-radius: 6px; font-size: 12px;">${translateValue(f)}</span>`).join("")}
                 </div>
             </div>` : ""}
+
+            <!-- Pricing Estimate -->
+            ${(() => {
+                const pricingFormData = buildFormDataForPricing(data);
+                const pricing = calculatePrice(pricingFormData);
+                return `
+                <div style="background: #ecfdf5; border-radius: 12px; padding: 20px; margin-bottom: 28px; border-left: 4px solid #10b981;">
+                    <h3 style="color: #065f46; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;">💰 Cotización Estimada</h3>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                        ${pricing.breakdown.map(item => `
+                            <tr>
+                                <td style="padding: 4px 0; color: #374151;">${item.label}</td>
+                                <td style="padding: 4px 0; color: #065f46; font-weight: 600; text-align: right;">${item.amount === 0 && item.category !== 'base' ? 'incluido' : formatCLP(item.amount)}</td>
+                            </tr>
+                        `).join('')}
+                        <tr>
+                            <td style="padding: 12px 0 4px; color: #065f46; font-weight: 700; font-size: 15px; border-top: 2px solid #10b981;">Desde</td>
+                            <td style="padding: 12px 0 4px; color: #065f46; font-weight: 700; font-size: 18px; text-align: right; border-top: 2px solid #10b981;">${formatCLP(pricing.totalMin)}</td>
+                        </tr>
+                    </table>
+                </div>`;
+            })()}
 
             <!-- Detailed sections -->
             ${renderSection("1. Identidad y Contacto", data.contactData)}
