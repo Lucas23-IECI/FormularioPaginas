@@ -311,7 +311,7 @@ export const landingConfig: BriefingTypeConfig = {
                     required: false,
                     dataGroup: "extra",
                     options: [
-                        { value: "whatsapp_button", label: "💬 Botón de WhatsApp flotante" },
+                        { value: "whatsapp_button", label: "💬 Redes sociales y WhatsApp flotante" },
                         { value: "google_maps", label: "📍 Google Maps integrado" },
                         { value: "formulario_contacto", label: "📝 Formulario de contacto" },
                         { value: "formulario_avanzado", label: "📋 Formulario avanzado (más campos)" },

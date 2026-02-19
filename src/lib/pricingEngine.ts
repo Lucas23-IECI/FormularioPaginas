@@ -37,7 +37,7 @@ const SECTION_PRICES: Record<string, { label: string; price: number }> = {
 
 // ── Precios por funcionalidad extra ───────────────────────
 const FEATURE_PRICES: Record<string, { label: string; price: number }> = {
-    whatsapp_button: { label: "Botón de WhatsApp", price: 0 },
+    whatsapp_button: { label: "Redes sociales y WhatsApp", price: 0 },
     google_maps: { label: "Google Maps", price: 3_000 },
     formulario_contacto: { label: "Formulario de contacto", price: 5_000 },
     formulario_avanzado: { label: "Formulario avanzado", price: 10_000 },
