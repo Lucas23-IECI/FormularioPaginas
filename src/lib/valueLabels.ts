@@ -73,7 +73,7 @@ const VALUE_LABELS: Record<string, string> = {
     borrador: "Tengo un borrador / ideas",
 
     // ── Funcionalidades extras ──
-    whatsapp_button: "Redes sociales y WhatsApp flotante",
+    whatsapp_button: "Redes sociales flotante",
     google_maps: "Google Maps integrado",
     formulario_contacto: "Formulario de contacto",
     formulario_avanzado: "Formulario avanzado (más campos)",
