@@ -1,7 +1,8 @@
 import { FormData } from "@/types/briefing";
 
-// ── Pricing Engine para Landing Pages ─────────────────────
+// ── Pricing Engine ─────────────────────────────────────────
 // Calcula precio estimado basado en las selecciones del formulario
+// Soporta LANDING y WEB_CORPORATIVA
 
 export interface PriceBreakdownItem {
     category: string;
@@ -17,7 +18,10 @@ export interface PricingResult {
     featuresCount: number;
 }
 
-// ── Precios por sección ───────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// LANDING — section-based pricing
+// ══════════════════════════════════════════════════════════
+
 const SECTION_PRICES: Record<string, { label: string; price: number }> = {
     hero: { label: "Hero / Banner principal", price: 0 },
     servicios: { label: "Servicios", price: 5_000 },
@@ -35,7 +39,24 @@ const SECTION_PRICES: Record<string, { label: string; price: number }> = {
     clientes: { label: "Logos de clientes", price: 3_000 },
 };
 
-// ── Precios por funcionalidad extra ───────────────────────
+// ══════════════════════════════════════════════════════════
+// WEB CORPORATIVA — page-based pricing
+// ══════════════════════════════════════════════════════════
+
+const PAGE_PRICES: Record<string, { label: string; price: number }> = {
+    inicio: { label: "Página de Inicio", price: 0 },
+    servicios: { label: "Servicios / Productos", price: 25_000 },
+    nosotros: { label: "Nosotros", price: 15_000 },
+    contacto: { label: "Contacto", price: 25_000 },
+    portafolio: { label: "Portafolio", price: 30_000 },
+    galeria: { label: "Galería", price: 20_000 },
+    blog: { label: "Blog", price: 45_000 },
+    faq: { label: "Preguntas frecuentes", price: 15_000 },
+    casos_exito: { label: "Casos de éxito", price: 35_000 },
+    precios: { label: "Precios", price: 25_000 },
+};
+
+// ── Feature prices — shared, with Web-only additions ──
 const FEATURE_PRICES: Record<string, { label: string; price: number }> = {
     whatsapp_button: { label: "Redes sociales y WhatsApp", price: 0 },
     google_maps: { label: "Google Maps", price: 3_000 },
@@ -47,9 +68,13 @@ const FEATURE_PRICES: Record<string, { label: string; price: number }> = {
     descargables: { label: "Descargables (PDF)", price: 3_000 },
     analytics: { label: "Google Analytics", price: 3_000 },
     seo: { label: "Optimización SEO", price: 8_000 },
+    // Web-only features
+    dark_mode: { label: "Modo oscuro / claro", price: 15_000 },
+    buscador: { label: "Buscador interno", price: 20_000 },
+    chat_en_vivo: { label: "Chat en vivo", price: 25_000 },
 };
 
-// ── Precios por estilo de diseño ──────────────────────────
+// ── Design style prices ──
 const DESIGN_PRICES: Record<string, { label: string; price: number }> = {
     moderno: { label: "Diseño moderno", price: 0 },
     minimalista: { label: "Diseño minimalista", price: 0 },
@@ -61,7 +86,7 @@ const DESIGN_PRICES: Record<string, { label: string; price: number }> = {
     creativo: { label: "Diseño creativo", price: 12_000 },
 };
 
-// ── Precios por urgencia ──────────────────────────────────
+// ── Urgencia ──
 const DEADLINE_PRICES: Record<string, { label: string; price: number }> = {
     sin_prisa: { label: "Sin prisa", price: 0 },
     normal: { label: "2-3 semanas", price: 0 },
@@ -69,42 +94,68 @@ const DEADLINE_PRICES: Record<string, { label: string; price: number }> = {
     urgente: { label: "Esta semana", price: 30_000 },
 };
 
-// ── Precios por contenido ─────────────────────────────────
+// ── Contenido ──
 const CONTENT_PRICES = {
     needsLogo: { label: "Diseño de logo", price: 20_000 },
     needsTexts: { label: "Redacción de textos", price: 10_000 },
 };
 
-// ── Base ──────────────────────────────────────────────────
-const BASE_PRICE = 100_000;
+// ── Base prices ──
+const BASE_PRICE_LANDING = 100_000;
+const BASE_PRICE_WEB = 380_000;
 
-// ── Calculador principal ──────────────────────────────────
-export function calculatePrice(formData: FormData): PricingResult {
+// ── Calculador principal — type-aware ──────────────────────
+export function calculatePrice(
+    formData: FormData,
+    type: string = "LANDING"
+): PricingResult {
+    const isWeb = type === "WEB_CORPORATIVA";
+    const basePrice = isWeb ? BASE_PRICE_WEB : BASE_PRICE_LANDING;
     const breakdown: PriceBreakdownItem[] = [];
-    let total = BASE_PRICE;
+    let total = basePrice;
 
     breakdown.push({
         category: "base",
-        label: "Landing Page base",
-        amount: BASE_PRICE,
+        label: isWeb ? "Web Corporativa base" : "Landing Page base",
+        amount: basePrice,
     });
 
-    // ── Secciones ──
-    const sections = (formData.sections as string[]) || [];
-    let sectionsTotal = 0;
-    for (const sectionId of sections) {
-        const info = SECTION_PRICES[sectionId];
-        if (info && info.price > 0) {
-            sectionsTotal += info.price;
+    if (isWeb) {
+        // ── Páginas (WEB_CORPORATIVA) ──
+        const pages = (formData.pages as string[]) || [];
+        let pagesTotal = 0;
+        for (const pageId of pages) {
+            const info = PAGE_PRICES[pageId];
+            if (info && info.price > 0) {
+                pagesTotal += info.price;
+            }
         }
-    }
-    if (sectionsTotal > 0) {
-        breakdown.push({
-            category: "secciones",
-            label: `${sections.length} secciones`,
-            amount: sectionsTotal,
-        });
-        total += sectionsTotal;
+        if (pagesTotal > 0) {
+            breakdown.push({
+                category: "paginas",
+                label: `${pages.length} páginas`,
+                amount: pagesTotal,
+            });
+            total += pagesTotal;
+        }
+    } else {
+        // ── Secciones (LANDING) ──
+        const sections = (formData.sections as string[]) || [];
+        let sectionsTotal = 0;
+        for (const sectionId of sections) {
+            const info = SECTION_PRICES[sectionId];
+            if (info && info.price > 0) {
+                sectionsTotal += info.price;
+            }
+        }
+        if (sectionsTotal > 0) {
+            breakdown.push({
+                category: "secciones",
+                label: `${sections.length} secciones`,
+                amount: sectionsTotal,
+            });
+            total += sectionsTotal;
+        }
     }
 
     // ── Diseño ──
@@ -172,11 +223,16 @@ export function calculatePrice(formData: FormData): PricingResult {
         total += deadlineInfo.price;
     }
 
+    // Item count — sections for Landing, pages for Web
+    const itemCount = isWeb
+        ? ((formData.pages as string[]) || []).length
+        : ((formData.sections as string[]) || []).length;
+
     return {
-        basePrice: BASE_PRICE,
+        basePrice,
         totalMin: total,
         breakdown,
-        sectionsCount: sections.length,
+        sectionsCount: itemCount,
         featuresCount: features.length,
     };
 }

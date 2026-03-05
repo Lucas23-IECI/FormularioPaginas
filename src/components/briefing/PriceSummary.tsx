@@ -11,12 +11,15 @@ interface PriceSummaryProps {
 }
 
 export function PriceSummary({ compact = false }: PriceSummaryProps) {
-    const { formData } = useBriefingForm();
+    const { formData, config } = useBriefingForm();
+    const type = config?.type || "LANDING";
 
-    const pricing = useMemo(() => calculatePrice(formData), [formData]);
+    const pricing = useMemo(() => calculatePrice(formData, type), [formData, type]);
 
-    // No mostrar nada si no hay suficiente data aún
-    const hasMinimumData = (formData.sections as string[])?.length > 0;
+    // Web Corporativa usa "pages", Landing usa "sections"
+    const hasMinimumData = type === "WEB_CORPORATIVA"
+        ? (formData.pages as string[])?.length > 0
+        : (formData.sections as string[])?.length > 0;
 
     if (!hasMinimumData && compact) return null;
 
