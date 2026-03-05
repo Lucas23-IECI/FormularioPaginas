@@ -1,8 +1,10 @@
 import { BriefingTypeConfig } from "@/types/briefing";
 import { landingConfig } from "./configs/landing";
+import { webCorporativaConfig } from "./configs/webCorporativa";
 
 const configs: Record<string, BriefingTypeConfig> = {
     LANDING: landingConfig,
+    WEB_CORPORATIVA: webCorporativaConfig,
 };
 
 export function getBriefingConfig(type: string): BriefingTypeConfig | null {
@@ -17,4 +19,4 @@ export function getEnabledConfigs(): BriefingTypeConfig[] {
     return Object.values(configs).filter((c) => c.enabled);
 }
 
-export { landingConfig };
+export { landingConfig, webCorporativaConfig };
