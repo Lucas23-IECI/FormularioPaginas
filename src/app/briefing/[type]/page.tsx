@@ -6,14 +6,24 @@ import { BriefingFormProvider, useBriefingForm } from "@/modules/briefingEngine/
 import { StepRenderer } from "@/modules/briefingEngine/StepRenderer";
 import { StepIndicator } from "@/components/briefing/StepIndicator";
 import { LiveLandingPreview } from "@/components/briefing/LiveLandingPreview";
+import { LiveWebCorporativaPreview } from "@/components/briefing/LiveWebCorporativaPreview";
 import { getBriefingConfig } from "@/modules/briefingEngine";
 import { BriefingTypeConfig } from "@/types/briefing";
 import { ArrowLeft, ArrowRight, Send, Loader2, Eye, EyeOff, ChevronLeft, Maximize2, X } from "lucide-react";
 import Link from "next/link";
 import { PriceSummary } from "@/components/briefing/PriceSummary";
 
+// ── Types that support live preview ──
+const PREVIEW_TYPES = ["LANDING", "WEB_CORPORATIVA"];
+function hasPreview(type: string) { return PREVIEW_TYPES.includes(type); }
+
+function PreviewByType({ type }: { type: string }) {
+    if (type === "WEB_CORPORATIVA") return <LiveWebCorporativaPreview />;
+    return <LiveLandingPreview />;
+}
+
 // ── Fullscreen Preview Modal ──────────────────────────────
-function FullscreenPreviewModal({ onClose }: { onClose: () => void }) {
+function FullscreenPreviewModal({ onClose, type }: { onClose: () => void; type: string }) {
     // Close on Escape key
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
@@ -48,7 +58,7 @@ function FullscreenPreviewModal({ onClose }: { onClose: () => void }) {
                 className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <LiveLandingPreview />
+                <PreviewByType type={type} />
             </div>
         </div>
     );
@@ -193,8 +203,8 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
             </div>
 
             {/* Fullscreen preview modal */}
-            {fullscreenPreview && config.type === "LANDING" && (
-                <FullscreenPreviewModal onClose={closeFullscreen} />
+            {fullscreenPreview && hasPreview(config.type) && (
+                <FullscreenPreviewModal onClose={closeFullscreen} type={config.type} />
             )}
 
             {/* Top nav */}
@@ -212,9 +222,9 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                         <h1 className="text-sm font-medium text-white/80">
                             Briefing — {config.label}
                         </h1>
-                        {config.type === "LANDING" && <PriceSummary compact />}
+                        {hasPreview(config.type) && <PriceSummary compact />}
                     </div>
-                    {config.type === "LANDING" && (
+                    {hasPreview(config.type) && (
                         <button
                             onClick={() => setShowPreview(!showPreview)}
                             className="flex items-center gap-2 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
@@ -242,7 +252,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                         <StepRenderer step={currentStepConfig} />
 
                         {/* Price Summary — full breakdown on last step */}
-                        {config.type === "LANDING" && isLastStep && (
+                        {hasPreview(config.type) && isLastStep && (
                             <PriceSummary />
                         )}
 
@@ -300,7 +310,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                     </div>
 
                     {/* Live Preview — reads from context, no props needed */}
-                    {showPreview && config.type === "LANDING" && (
+                    {showPreview && hasPreview(config.type) && (
                         <div className="animate-fadeIn lg:sticky lg:top-24">
                             <div className="mb-3 flex items-center justify-between">
                                 <h3 className="text-sm font-medium text-white/60">Vista previa en tiempo real</h3>
@@ -312,7 +322,7 @@ function BriefingFormContent({ config }: { config: BriefingTypeConfig }) {
                                     <span>Expandir</span>
                                 </button>
                             </div>
-                            <LiveLandingPreview />
+                            <PreviewByType type={config.type} />
                         </div>
                     )}
                 </div>
