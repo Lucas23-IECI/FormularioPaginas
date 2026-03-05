@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useBriefingForm } from "@/modules/briefingEngine/context";
 import { getGenericCopy } from "@/lib/genericCopy";
-import { getStylePreset } from "@/lib/stylePresets";
+import { getStylePreset, readableTextShadow } from "@/lib/stylePresets";
 import {
     Globe,
     Mail,
@@ -32,6 +32,9 @@ import {
     Search,
     Moon,
     Sun,
+    ChevronLeft,
+    ChevronRight,
+    Navigation,
 } from "lucide-react";
 
 // ── Placeholder images ──────────────────────────────────
@@ -174,11 +177,14 @@ export function LiveWebCorporativaPreview() {
         comprar: "Solicitar cotización",
     };
 
-    // ── View mode: tabs vs sitemap ──
-    const [viewMode, setViewMode] = useState<"tabs" | "sitemap">("tabs");
+    // ── View mode: pages (tabs) vs navigation vs sitemap ──
+    const [viewMode, setViewMode] = useState<"pages" | "navigation" | "sitemap">("pages");
 
     // ── Active page (for tab navigation) ──
     const [activePage, setActivePage] = useState("inicio");
+
+    // ── Navigation mode: sequential page index ──
+    const [navPageIndex, setNavPageIndex] = useState(0);
 
     // ── Multi-idioma ──
     const [previewLang, setPreviewLang] = useState<"es" | "en">("es");
@@ -269,8 +275,8 @@ export function LiveWebCorporativaPreview() {
                             {twitterUrl && <a href={twitterUrl.startsWith("http") ? twitterUrl : `https://x.com/${twitterUrl.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="w-5 h-5 rounded-full bg-gray-800 flex items-center justify-center hover:scale-110 transition-transform no-underline"><Twitter size={10} className="text-white" /></a>}
                         </div>
                     )}
-                    <h3 className={`text-lg font-bold ${isDark || designStyle === "corporativo" ? "text-white" : textClass} mb-1 drop-shadow-lg`}>{businessName}</h3>
-                    {industry && <p className={`text-[10px] ${isDark || designStyle === "corporativo" ? "text-white/70" : subtextClass} mb-2 capitalize`}>{copy.tagline}</p>}
+                    <h3 className="text-lg font-bold text-white mb-1" style={{ textShadow: readableTextShadow }}>{businessName}</h3>
+                    {industry && <p className="text-[10px] text-white/80 mb-2 capitalize" style={{ textShadow: readableTextShadow }}>{copy.tagline}</p>}
                     <a href={ctaHref} target="_blank" rel="noopener noreferrer"
                         className={`inline-block px-4 py-1.5 ${style.borderRadius} text-white text-[10px] font-medium shadow-lg transition-transform hover:scale-105 no-underline`}
                         style={{ backgroundColor: accentColor }}>
@@ -542,7 +548,7 @@ export function LiveWebCorporativaPreview() {
                 {activePages.map((page) => (
                     <button
                         key={page}
-                        onClick={() => { setActivePage(page); setViewMode("tabs"); }}
+                        onClick={() => { setActivePage(page); setViewMode("pages"); }}
                         className={`${cardBg} ${style.borderRadius} ${style.shadow} p-2 text-center transition-all hover:scale-105 cursor-pointer group`}
                     >
                         {/* Connector dot */}
@@ -578,7 +584,76 @@ export function LiveWebCorporativaPreview() {
     );
 
     // ═══════════════════════════════════════════════════════
-    // TABS VIEW
+    // NAVIGATION VIEW (simulated browsing)
+    // ═══════════════════════════════════════════════════════
+
+    const renderNavigationView = () => {
+        const currentPage = activePages[navPageIndex] || activePages[0];
+
+        return (
+            <div ref={scrollContainerRef} className={`${bgClass} overflow-y-auto transition-colors duration-300`} style={{ maxHeight: "500px" }}>
+                {/* Breadcrumb trail */}
+                <div className={`sticky top-0 z-10 ${isDark ? "bg-gray-950/95" : "bg-white/95"} backdrop-blur-sm border-b ${dividerColor} px-3 py-1.5`}>
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                        {activePages.slice(0, navPageIndex + 1).map((page, i) => (
+                            <React.Fragment key={page}>
+                                {i > 0 && <ChevronRight size={8} className={`${subtextClass} flex-shrink-0`} />}
+                                <button
+                                    onClick={() => setNavPageIndex(i)}
+                                    className={`flex-shrink-0 text-[8px] font-medium transition-colors ${i === navPageIndex
+                                        ? "font-bold"
+                                        : `${subtextClass} hover:underline`
+                                    }`}
+                                    style={i === navPageIndex ? { color: accentColor } : {}}
+                                >
+                                    {PAGE_LABELS[page]}
+                                </button>
+                            </React.Fragment>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Current page content */}
+                <div className="animate-fadeIn">
+                    {PAGE_RENDERERS[currentPage]?.()}
+                </div>
+
+                {/* Navigation controls */}
+                <div className={`flex items-center justify-between px-4 py-3 border-t ${dividerColor}`}>
+                    <button
+                        onClick={() => setNavPageIndex(Math.max(0, navPageIndex - 1))}
+                        disabled={navPageIndex === 0}
+                        className={`flex items-center gap-1 text-[9px] px-2 py-1 ${style.borderRadius} transition-colors ${navPageIndex === 0
+                            ? `${subtextClass} opacity-40 cursor-not-allowed`
+                            : `${textClass} hover:bg-black/5 ${isDark ? "hover:bg-white/5" : ""}`
+                        }`}
+                    >
+                        <ChevronLeft size={10} /> Anterior
+                    </button>
+                    <span className={`text-[8px] ${subtextClass}`}>{navPageIndex + 1} / {activePages.length}</span>
+                    <button
+                        onClick={() => setNavPageIndex(Math.min(activePages.length - 1, navPageIndex + 1))}
+                        disabled={navPageIndex === activePages.length - 1}
+                        className={`flex items-center gap-1 text-[9px] px-2 py-1 ${style.borderRadius} transition-colors ${navPageIndex === activePages.length - 1
+                            ? `${subtextClass} opacity-40 cursor-not-allowed`
+                            : `text-white`
+                        }`}
+                        style={navPageIndex < activePages.length - 1 ? { backgroundColor: accentColor } : {}}
+                    >
+                        Siguiente <ChevronRight size={10} />
+                    </button>
+                </div>
+
+                {/* Footer */}
+                <div ref={footerRef} className="px-4 py-3 text-center transition-colors duration-300" style={{ backgroundColor: `${accentColor}10` }}>
+                    <p className={`text-[8px] ${subtextClass}`}>© 2026 {businessName} — Todos los derechos reservados</p>
+                </div>
+            </div>
+        );
+    };
+
+    // ═══════════════════════════════════════════════════════
+    // TABS VIEW (pages)
     // ═══════════════════════════════════════════════════════
 
     const renderTabsView = () => (
@@ -704,17 +779,9 @@ export function LiveWebCorporativaPreview() {
                 <div className="flex-1 mx-2">
                     <div className="bg-slate-700 rounded-md px-3 py-1 flex items-center gap-2 text-xs text-white/50">
                         <Globe size={10} />
-                        <span>www.{businessName.toLowerCase().replace(/\s+/g, "")}.cl{viewMode === "tabs" && activePage !== "inicio" ? `/${activePage}` : ""}</span>
+                        <span>www.{businessName.toLowerCase().replace(/\s+/g, "")}.cl{viewMode === "pages" && activePage !== "inicio" ? `/${activePage}` : viewMode === "navigation" ? `/${activePages[navPageIndex] || "inicio"}` : ""}</span>
                     </div>
                 </div>
-                {/* View mode toggle */}
-                <button
-                    onClick={() => setViewMode(viewMode === "tabs" ? "sitemap" : "tabs")}
-                    className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded text-white/40 hover:text-white/70 transition-colors"
-                    title={viewMode === "tabs" ? "Ver mapa del sitio" : "Ver navegación"}
-                >
-                    {viewMode === "tabs" ? <LayoutGrid size={10} /> : <Monitor size={10} />}
-                </button>
                 {/* Dark mode toggle */}
                 {hasDarkMode && (
                     <button
@@ -737,6 +804,25 @@ export function LiveWebCorporativaPreview() {
                 )}
             </div>
 
+            {/* View mode tabs — 3 modes like Ecommerce */}
+            <div className="flex border-b border-white/10 bg-slate-800/50">
+                {([
+                    { key: "pages" as const, label: "Páginas", icon: <Monitor size={10} /> },
+                    { key: "navigation" as const, label: "Navegación", icon: <Navigation size={10} /> },
+                    { key: "sitemap" as const, label: "Mapa del Sitio", icon: <LayoutGrid size={10} /> },
+                ]).map(tab => (
+                    <button
+                        key={tab.key}
+                        onClick={() => setViewMode(tab.key)}
+                        className={`flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[9px] font-medium transition-colors ${viewMode === tab.key ? "text-white border-b-2" : "text-white/40 hover:text-white/60"}`}
+                        style={{ borderColor: viewMode === tab.key ? primaryColor : "transparent" }}
+                    >
+                        {tab.icon}
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
             {/* Content area */}
             {activePages.length === 0 ? (
                 <div className={`${bgClass} px-6 py-12 text-center`}>
@@ -745,12 +831,14 @@ export function LiveWebCorporativaPreview() {
                 </div>
             ) : viewMode === "sitemap" ? (
                 renderSitemap()
+            ) : viewMode === "navigation" ? (
+                renderNavigationView()
             ) : (
                 renderTabsView()
             )}
 
-            {/* Floating social buttons — tabs mode only */}
-            {viewMode === "tabs" && features.includes("whatsapp_button") && showFloating && (
+            {/* Floating social buttons — pages/navigation mode only */}
+            {viewMode !== "sitemap" && features.includes("whatsapp_button") && showFloating && (
                 <div className="absolute bottom-4 right-4 flex flex-col-reverse items-center gap-2 transition-opacity duration-300" style={{ opacity: showFloating ? 1 : 0 }}>
                     {normalizedPhone ? (
                         <a href={`https://wa.me/${normalizedPhone}`} target="_blank" rel="noopener noreferrer"
@@ -785,7 +873,7 @@ export function LiveWebCorporativaPreview() {
             )}
 
             {/* Chat en vivo indicator */}
-            {features.includes("chat_en_vivo") && viewMode === "tabs" && showFloating && (
+            {features.includes("chat_en_vivo") && viewMode !== "sitemap" && showFloating && (
                 <div className="absolute bottom-4 left-4">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: accentColor }}>
                         <MessageCircle size={18} className="text-white" />

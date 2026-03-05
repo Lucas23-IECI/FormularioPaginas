@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useBriefingForm } from "@/modules/briefingEngine/context";
-import { getStylePreset, StylePreset } from "@/lib/stylePresets";
+import { getStylePreset, StylePreset, readableTextShadow } from "@/lib/stylePresets";
 import {
     ShoppingCart, Store, MapPin, User, Heart, Star,
     Search, ChevronRight, Plus, Minus, Trash2, CreditCard,
@@ -133,11 +133,11 @@ export function LiveEcommercePreview() {
     useEffect(() => { prevViewMode.current = viewMode; }, [viewMode]);
 
     // ── Palette helpers ──
-    const bg = isDark ? "#0f172a" : style.bg;
-    const text = isDark ? "#e2e8f0" : style.text;
-    const subtext = isDark ? "#94a3b8" : style.subtext;
-    const card = isDark ? "#1e293b" : style.card;
-    const divider = isDark ? "#334155" : style.divider;
+    const bg = isDark ? "#0f172a" : style.bgHex;
+    const text = isDark ? "#e2e8f0" : style.textHex;
+    const subtext = isDark ? "#94a3b8" : style.subtextHex;
+    const card = isDark ? "#1e293b" : style.cardHex;
+    const divider = isDark ? "#334155" : style.dividerHex;
     const heroOverlay = isDark ? "rgba(15,23,42,0.8)" : style.heroOverlay;
 
     // ── Payment method icons ──
@@ -227,10 +227,10 @@ export function LiveEcommercePreview() {
                 <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${primaryColor}dd, ${accentColor}aa)` }}>
                     <div className="absolute inset-0 flex items-center justify-center text-center p-3" style={{ background: heroOverlay }}>
                         <div>
-                            <p className="text-[13px] font-bold text-white mb-0.5">
+                            <p className="text-[13px] font-bold text-white mb-0.5" style={{ textShadow: readableTextShadow }}>
                                 {lang === "ES" ? "🔥 Ofertas de Temporada" : "🔥 Season Sale"}
                             </p>
-                            <p className="text-[9px] text-white/80 mb-1.5">
+                            <p className="text-[9px] text-white/80 mb-1.5" style={{ textShadow: readableTextShadow }}>
                                 {lang === "ES" ? "Hasta 40% de descuento en productos seleccionados" : "Up to 40% off selected items"}
                             </p>
                             <span className="inline-block px-3 py-1 rounded-full text-[8px] font-semibold text-white" style={{ background: accentColor }}>

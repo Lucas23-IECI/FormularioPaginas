@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { useBriefingForm } from "@/modules/briefingEngine/context";
 import { getGenericCopy } from "@/lib/genericCopy";
-import { getStylePreset } from "@/lib/stylePresets";
+import { getStylePreset, readableTextShadow } from "@/lib/stylePresets";
 import {
     Globe,
     Mail,
@@ -316,9 +316,9 @@ export function LiveLandingPreview() {
                                         )}
                                     </div>
                                 )}
-                                <h3 className={`text-lg font-bold ${style.isDark || designStyle === "corporativo" ? "text-white" : textClass} mb-1 drop-shadow-lg`}>{t.heroTitle}</h3>
+                                <h3 className="text-lg font-bold text-white mb-1" style={{ textShadow: readableTextShadow }}>{t.heroTitle}</h3>
                                 {industry && (
-                                    <p className={`text-[10px] ${style.isDark || designStyle === "corporativo" ? "text-white/70" : subtextClass} mb-3 capitalize`}>{industry.replace(/_/g, " ")}</p>
+                                    <p className="text-[10px] text-white/80 mb-3 capitalize" style={{ textShadow: readableTextShadow }}>{industry.replace(/_/g, " ")}</p>
                                 )}
                                 <a
                                     href={ctaHref}

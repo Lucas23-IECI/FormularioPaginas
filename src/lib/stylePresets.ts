@@ -14,6 +14,12 @@ export interface StylePreset {
     shadow: string;
     headingClass: string;
     sectionPy: string;
+    // Hex equivalents for inline styles (style={{ color, background }})
+    bgHex: string;
+    textHex: string;
+    subtextHex: string;
+    cardHex: string;
+    dividerHex: string;
 }
 
 export function getStylePreset(designStyle: string, primaryColor: string): StylePreset {
@@ -32,6 +38,11 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-none",
                 headingClass: "uppercase tracking-wider text-[9px]",
                 sectionPy: "py-4 px-5",
+                bgHex: "#030712",
+                textHex: "#ffffff",
+                subtextHex: "#9ca3af",
+                cardHex: "#111827",
+                dividerHex: "#1f2937",
             };
         case "elegante":
             return {
@@ -47,6 +58,11 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-none",
                 headingClass: "uppercase tracking-[0.2em] text-[9px] font-light",
                 sectionPy: "py-6 px-6",
+                bgHex: "#fafaf9",
+                textHex: "#1c1917",
+                subtextHex: "#78716c",
+                cardHex: "#ffffff",
+                dividerHex: "#e7e5e4",
             };
         case "minimalista":
             return {
@@ -62,6 +78,11 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-none",
                 headingClass: "tracking-tight text-[10px] font-light lowercase",
                 sectionPy: "py-6 px-8",
+                bgHex: "#ffffff",
+                textHex: "#1f2937",
+                subtextHex: "#9ca3af",
+                cardHex: "#fafaf9",
+                dividerHex: "#f9fafb",
             };
         case "corporativo":
             return {
@@ -77,6 +98,11 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-md",
                 headingClass: "uppercase tracking-wide text-[9px] font-bold",
                 sectionPy: "py-3 px-4",
+                bgHex: "#f8fafc",
+                textHex: "#0f172a",
+                subtextHex: "#64748b",
+                cardHex: "#ffffff",
+                dividerHex: "#e2e8f0",
             };
         case "creativo":
             return {
@@ -92,6 +118,11 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-lg shadow-purple-100/50",
                 headingClass: "text-[11px] font-extrabold",
                 sectionPy: "py-5 px-5",
+                bgHex: "#ffffff",
+                textHex: "#111827",
+                subtextHex: "#4b5563",
+                cardHex: "#ffffff",
+                dividerHex: "#ede9fe",
             };
         case "calido":
             return {
@@ -107,6 +138,11 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-sm shadow-amber-100",
                 headingClass: "text-[10px] font-medium",
                 sectionPy: "py-5 px-6",
+                bgHex: "#fffbeb",
+                textHex: "#451a03",
+                subtextHex: "#b45309",
+                cardHex: "#ffffff",
+                dividerHex: "#fef3c7",
             };
         case "moderno":
         default:
@@ -123,6 +159,25 @@ export function getStylePreset(designStyle: string, primaryColor: string): Style
                 shadow: "shadow-sm",
                 headingClass: "text-[10px] font-semibold",
                 sectionPy: "py-4 px-5",
+                bgHex: "#ffffff",
+                textHex: "#111827",
+                subtextHex: "#4b5563",
+                cardHex: "#f9fafb",
+                dividerHex: "#f3f4f6",
             };
     }
 }
+
+/** Returns "#000000" or "#ffffff" for maximum contrast against the given hex background. */
+export function contrastColor(hex: string): string {
+    const c = hex.replace("#", "");
+    const r = parseInt(c.substring(0, 2), 16);
+    const g = parseInt(c.substring(2, 4), 16);
+    const b = parseInt(c.substring(4, 6), 16);
+    // W3C relative luminance formula
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? "#000000" : "#ffffff";
+}
+
+/** CSS text-shadow for readable text on any background */
+export const readableTextShadow = "0 1px 3px rgba(0,0,0,0.3), 0 0 6px rgba(0,0,0,0.15)";
