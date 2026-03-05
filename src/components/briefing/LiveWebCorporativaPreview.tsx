@@ -597,14 +597,14 @@ export function LiveWebCorporativaPreview() {
                     <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
                         {activePages.slice(0, navPageIndex + 1).map((page, i) => (
                             <React.Fragment key={page}>
-                                {i > 0 && <ChevronRight size={8} className={`${subtextClass} flex-shrink-0`} />}
+                                {i > 0 && <ChevronRight size={8} className="flex-shrink-0" style={{ color: style.subtextHex }} />}
                                 <button
                                     onClick={() => setNavPageIndex(i)}
                                     className={`flex-shrink-0 text-[8px] font-medium transition-colors ${i === navPageIndex
                                         ? "font-bold"
-                                        : `${subtextClass} hover:underline`
+                                        : "hover:underline"
                                     }`}
-                                    style={i === navPageIndex ? { color: accentColor } : {}}
+                                    style={i === navPageIndex ? { color: accentColor } : { color: style.subtextHex }}
                                 >
                                     {PAGE_LABELS[page]}
                                 </button>
@@ -667,9 +667,9 @@ export function LiveWebCorporativaPreview() {
                             onClick={() => setActivePage(page)}
                             className={`flex-shrink-0 px-2 py-1 ${style.borderRadius} text-[8px] font-medium transition-all ${activePage === page
                                 ? `text-white`
-                                : `${textClass} hover:bg-black/5 ${isDark ? "hover:bg-white/5" : ""}`
+                                : `hover:bg-black/5 ${isDark ? "hover:bg-white/5" : ""}`
                                 }`}
-                            style={activePage === page ? { backgroundColor: accentColor } : {}}
+                            style={activePage === page ? { backgroundColor: accentColor } : { color: style.textHex }}
                         >
                             {PAGE_LABELS[page]}
                         </button>

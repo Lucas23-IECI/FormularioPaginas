@@ -24,6 +24,8 @@ export interface FieldConfig {
     required?: boolean;
     options?: FieldOption[];
     helperText?: string;
+    maxFree?: number;
+    paidBadge?: string;
     validation?: {
         min?: number;
         max?: number;

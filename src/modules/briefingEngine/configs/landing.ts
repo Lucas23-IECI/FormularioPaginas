@@ -168,7 +168,8 @@ export const landingConfig: BriefingTypeConfig = {
                     type: "multiselect",
                     required: true,
                     dataGroup: "content",
-                    helperText: "Selecciona todas las que apliquen a tu negocio",
+                    maxFree: 6,
+                    helperText: "Inicio + 5 secciones incluidas. Cada sección adicional tiene costo extra",
                     options: [
                         { value: "hero", label: "🎯 Hero / Banner principal" },
                         { value: "servicios", label: "💼 Servicios / Lo que ofrezco" },

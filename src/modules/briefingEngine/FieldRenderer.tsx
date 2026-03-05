@@ -279,6 +279,34 @@ export function FieldRenderer({ field }: FieldRendererProps) {
                             );
                         })}
                     </div>
+
+                    {/* Pricing notes */}
+                    {field.maxFree && (() => {
+                        const count = Array.isArray(value) ? value.length : 0;
+                        const over = count > field.maxFree!;
+                        return (
+                            <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-sm ${
+                                over
+                                    ? "bg-amber-500/10 border border-amber-500/30 text-amber-300"
+                                    : "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                            }`}>
+                                <span>{over ? "⚠️" : "✅"}</span>
+                                <span>
+                                    {over
+                                        ? `Has seleccionado ${count}. Las primeras ${field.maxFree} están incluidas, cada adicional tiene costo extra.`
+                                        : `Has seleccionado ${count} de ${field.maxFree} incluidas.`
+                                    }
+                                </span>
+                            </div>
+                        );
+                    })()}
+
+                    {field.paidBadge && (
+                        <div className="flex items-start gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                            <span>{field.paidBadge}</span>
+                        </div>
+                    )}
+
                     {field.helperText && <HelperText text={field.helperText} />}
                 </div>
             );

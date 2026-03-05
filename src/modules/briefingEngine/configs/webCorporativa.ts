@@ -166,7 +166,8 @@ export const webCorporativaConfig: BriefingTypeConfig = {
                     type: "multiselect",
                     required: true,
                     dataGroup: "content",
-                    helperText: "Cada página será una sección independiente de tu sitio web con su propia navegación",
+                    maxFree: 6,
+                    helperText: "Inicio + 5 páginas incluidas. Cada página adicional tiene costo extra",
                     options: [
                         { value: "inicio", label: "🏠 Inicio (hero, intro, destacados)" },
                         { value: "servicios", label: "💼 Servicios / Productos (detalle por servicio)" },

@@ -275,7 +275,8 @@ export const ecommerceConfig: BriefingTypeConfig = {
                     type: "multiselect",
                     required: true,
                     dataGroup: "content",
-                    helperText: "Inicio, Catálogo, Producto, Carrito y Checkout están siempre incluidos",
+                    maxFree: 6,
+                    helperText: "Inicio + 5 páginas incluidas. Cada página adicional tiene costo extra",
                     options: [
                         { value: "inicio", label: "Página de Inicio" },
                         { value: "catalogo", label: "Catálogo / Tienda" },
@@ -668,6 +669,7 @@ export const ecommerceConfig: BriefingTypeConfig = {
                     type: "multiselect",
                     required: false,
                     dataGroup: "extra",
+                    paidBadge: "💰 Cada herramienta de marketing tiene costo adicional",
                     helperText: "Todas las integraciones usan tus propias cuentas — nosotros solo las conectamos",
                     options: [
                         { value: "newsletter_email", label: "Email marketing / Newsletter" },
@@ -734,6 +736,7 @@ export const ecommerceConfig: BriefingTypeConfig = {
                     type: "multiselect",
                     required: false,
                     dataGroup: "extra",
+                    paidBadge: "💰 Cada funcionalidad extra tiene costo adicional",
                     helperText: "Agrega las funcionalidades que necesites",
                     options: [
                         { value: "resenas_valoraciones", label: "Reseñas y valoraciones de productos" },
