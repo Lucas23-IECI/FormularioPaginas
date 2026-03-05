@@ -26,7 +26,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 
 const typeLabels: Record<string, string> = {
     LANDING: "Landing Page",
-    WEB_COMERCIAL: "Web Comercial",
+    WEB_CORPORATIVA: "Web Corporativa",
     ECOMMERCE: "E-commerce",
 };
 
@@ -162,7 +162,7 @@ export default function AdminDashboard() {
                     >
                         <option value="" className="bg-slate-900">Todos los tipos</option>
                         <option value="LANDING" className="bg-slate-900">Landing Page</option>
-                        <option value="WEB_COMERCIAL" className="bg-slate-900">Web Comercial</option>
+                        <option value="WEB_CORPORATIVA" className="bg-slate-900">Web Corporativa</option>
                         <option value="ECOMMERCE" className="bg-slate-900">E-commerce</option>
                     </select>
                     <select

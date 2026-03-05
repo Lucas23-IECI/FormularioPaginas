@@ -7,8 +7,8 @@ import { getAllConfigs } from "@/modules/briefingEngine";
 
 const comingSoonConfigs = [
   {
-    type: "WEB_COMERCIAL",
-    label: "Web Comercial",
+    type: "WEB_CORPORATIVA",
+    label: "Web Corporativa",
     description: "Sitio web completo con múltiples páginas para tu negocio",
     icon: "Building2",
     enabled: false,

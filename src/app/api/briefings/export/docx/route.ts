@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
         const typeLabels: Record<string, string> = {
             LANDING: "Landing Page",
-            WEB_COMERCIAL: "Web Comercial",
+            WEB_CORPORATIVA: "Web Corporativa",
             ECOMMERCE: "E-commerce",
         };
 

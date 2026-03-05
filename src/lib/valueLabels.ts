@@ -27,6 +27,12 @@ const VALUE_LABELS: Record<string, string> = {
     informar: "Dar a conocer mi negocio",
     evento: "Promocionar un evento",
     portafolio: "Mostrar mi portafolio / trabajo",
+    // Web Corporativa objectives
+    presencia_online: "Establecer presencia profesional en internet",
+    generar_confianza: "Generar confianza y credibilidad",
+    mostrar_catalogo: "Mostrar catálogo de productos o servicios",
+    captar_clientes: "Captar nuevos clientes",
+    informar_empresa: "Informar sobre la empresa y su trayectoria",
 
     // ── Llamada a la acción (CTA) ──
     whatsapp: "Contactar por WhatsApp",
@@ -51,6 +57,12 @@ const VALUE_LABELS: Record<string, string> = {
     ubicacion: "Mapa / Ubicación",
     estadisticas: "Cifras / Estadísticas",
     clientes: "Logos de clientes",
+
+    // ── Páginas Web Corporativa ──
+    inicio: "Página de Inicio",
+    nosotros: "Nosotros / Quiénes somos",
+    galeria: "Galería de imágenes",
+    casos_exito: "Casos de éxito",
 
     // ── Estilo de diseño ──
     moderno: "Moderno y limpio",
@@ -83,6 +95,10 @@ const VALUE_LABELS: Record<string, string> = {
     descargables: "Descargables (PDF / Catálogo)",
     analytics: "Google Analytics",
     seo: "Optimización SEO",
+    // Web Corporativa features
+    dark_mode: "Modo oscuro / claro",
+    buscador: "Buscador interno",
+    chat_en_vivo: "Chat en vivo",
 
     // ── Dominio ──
     necesito: "No, necesito uno",
