@@ -7,6 +7,7 @@ import { StepRenderer } from "@/modules/briefingEngine/StepRenderer";
 import { StepIndicator } from "@/components/briefing/StepIndicator";
 import { LiveLandingPreview } from "@/components/briefing/LiveLandingPreview";
 import { LiveWebCorporativaPreview } from "@/components/briefing/LiveWebCorporativaPreview";
+import { LiveEcommercePreview } from "@/components/briefing/LiveEcommercePreview";
 import { getBriefingConfig } from "@/modules/briefingEngine";
 import { BriefingTypeConfig } from "@/types/briefing";
 import { ArrowLeft, ArrowRight, Send, Loader2, Eye, EyeOff, ChevronLeft, Maximize2, X } from "lucide-react";
@@ -14,10 +15,11 @@ import Link from "next/link";
 import { PriceSummary } from "@/components/briefing/PriceSummary";
 
 // ── Types that support live preview ──
-const PREVIEW_TYPES = ["LANDING", "WEB_CORPORATIVA"];
+const PREVIEW_TYPES = ["LANDING", "WEB_CORPORATIVA", "ECOMMERCE"];
 function hasPreview(type: string) { return PREVIEW_TYPES.includes(type); }
 
 function PreviewByType({ type }: { type: string }) {
+    if (type === "ECOMMERCE") return <LiveEcommercePreview />;
     if (type === "WEB_CORPORATIVA") return <LiveWebCorporativaPreview />;
     return <LiveLandingPreview />;
 }
@@ -55,10 +57,12 @@ function FullscreenPreviewModal({ onClose, type }: { onClose: () => void; type: 
             </button>
             {/* Preview container — click inside must NOT close */}
             <div
-                className="w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
+                className="w-full h-full max-w-5xl mx-auto px-4 py-12 overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                <PreviewByType type={type} />
+                <div className="max-w-3xl mx-auto rounded-2xl shadow-2xl">
+                    <PreviewByType type={type} />
+                </div>
             </div>
         </div>
     );

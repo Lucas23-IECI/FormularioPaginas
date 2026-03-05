@@ -44,6 +44,38 @@ const FEATURE_LABELS: Record<string, string> = {
     seo: "Optimización SEO",
 };
 
+const ECOMMERCE_FEATURE_LABELS: Record<string, string> = {
+    reviews: "Reseñas de productos",
+    variantes: "Variantes (talla/color)",
+    cupones: "Cupones de descuento",
+    wishlist: "Lista de deseos",
+    comparador: "Comparador de productos",
+    busqueda_avanzada: "Búsqueda avanzada",
+    filtros: "Filtros por atributos",
+    quick_view: "Vista rápida",
+    stock_alerts: "Alertas de stock",
+    cross_selling: "Productos relacionados",
+    bundle: "Packs / Bundles",
+};
+
+const MARKETING_FEATURE_LABELS: Record<string, string> = {
+    newsletter: "Newsletter",
+    banners_promo: "Banners promocionales",
+    analytics: "Google Analytics",
+    seo_avanzado: "SEO avanzado",
+    social_sharing: "Compartir en redes",
+    carrito_abandonado: "Recuperación carrito abandonado",
+    codigos_descuento: "Códigos de descuento",
+    referidos: "Programa de referidos",
+};
+
+const PAYMENT_LABELS: Record<string, string> = {
+    webpay: "Webpay (Transbank)",
+    mercadopago: "MercadoPago",
+    transferencia: "Transferencia bancaria",
+    contra_entrega: "Pago contra entrega",
+};
+
 const STYLE_LABELS: Record<string, string> = {
     moderno: "Moderno y limpio",
     elegante: "Elegante y sofisticado",
@@ -86,6 +118,13 @@ export function generateClientEmailHtml(data: BriefingData): string {
     const deadline = (data.extraData.deadline as string) || "";
     const mainCTA = (data.contentData.mainCTA as string) || "";
 
+    // ECOMMERCE-specific data
+    const isEcommerce = data.type === "ECOMMERCE";
+    const storeObjective = (data.contentData.storeObjective as string) || "";
+    const paymentMethods = (data.contentData.paymentMethods as string[]) || [];
+    const ecommerceFeatures = (data.extraData.ecommerceFeatures as string[]) || [];
+    const marketingFeatures = (data.contentData.marketingFeatures as string[]) || [];
+
     const sectionsList = sections
         .map((s) => SECTION_LABELS[s] || s.replace(/_/g, " "))
         .map((s) => `<li style="padding: 4px 0; color: #4b5563;">✅ ${s}</li>`)
@@ -96,8 +135,26 @@ export function generateClientEmailHtml(data: BriefingData): string {
         .map((f) => `<li style="padding: 4px 0; color: #4b5563;">⚡ ${f}</li>`)
         .join("");
 
+    // ECOMMERCE-specific lists
+    const paymentList = paymentMethods
+        .map((p) => PAYMENT_LABELS[p] || p.replace(/_/g, " "))
+        .map((p) => `<li style="padding: 4px 0; color: #4b5563;">💳 ${p}</li>`)
+        .join("");
+
+    const ecommerceFeaturesList = ecommerceFeatures
+        .map((f) => ECOMMERCE_FEATURE_LABELS[f] || f.replace(/_/g, " "))
+        .map((f) => `<li style="padding: 4px 0; color: #4b5563;">🛒 ${f}</li>`)
+        .join("");
+
+    const marketingList = marketingFeatures
+        .map((f) => MARKETING_FEATURE_LABELS[f] || f.replace(/_/g, " "))
+        .map((f) => `<li style="padding: 4px 0; color: #4b5563;">📢 ${f}</li>`)
+        .join("");
+
     const styleLabel = STYLE_LABELS[designStyle] || designStyle || "No especificado";
-    const goalLabel = GOAL_LABELS[mainGoal] || mainGoal || "No especificado";
+    const goalLabel = isEcommerce
+        ? (storeObjective ? storeObjective.replace(/_/g, " ") : "No especificado")
+        : (GOAL_LABELS[mainGoal] || mainGoal || "No especificado");
     const deadlineLabel = DEADLINE_LABELS[deadline] || deadline || "No especificado";
 
     // Solo el primer nombre para el saludo del correo
@@ -186,6 +243,39 @@ export function generateClientEmailHtml(data: BriefingData): string {
                     </h3>
                     <ul style="margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 14px;">
                         ${featuresList}
+                    </ul>
+                </div>` : ""}
+
+                ${isEcommerce && paymentMethods.length > 0 ? `
+                <!-- Payment Methods -->
+                <div>
+                    <h3 style="color: #475569; font-size: 14px; font-weight: 700; margin: 12px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Medios de pago (${paymentMethods.length})
+                    </h3>
+                    <ul style="margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 14px;">
+                        ${paymentList}
+                    </ul>
+                </div>` : ""}
+
+                ${isEcommerce && ecommerceFeatures.length > 0 ? `
+                <!-- E-commerce Features -->
+                <div>
+                    <h3 style="color: #475569; font-size: 14px; font-weight: 700; margin: 12px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Funcionalidades de tienda (${ecommerceFeatures.length})
+                    </h3>
+                    <ul style="margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 14px;">
+                        ${ecommerceFeaturesList}
+                    </ul>
+                </div>` : ""}
+
+                ${isEcommerce && marketingFeatures.length > 0 ? `
+                <!-- Marketing -->
+                <div>
+                    <h3 style="color: #475569; font-size: 14px; font-weight: 700; margin: 12px 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Marketing y ventas (${marketingFeatures.length})
+                    </h3>
+                    <ul style="margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 14px;">
+                        ${marketingList}
                     </ul>
                 </div>` : ""}
             </div>

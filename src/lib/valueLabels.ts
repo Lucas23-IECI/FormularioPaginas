@@ -118,6 +118,184 @@ const VALUE_LABELS: Record<string, string> = {
     // ── Genéricos ──
     otro: "Otro",
     no: "No",
+
+    // ═══════════════════════════════════════════════════════
+    // E-COMMERCE — Valores específicos
+    // ═══════════════════════════════════════════════════════
+
+    // ── Rubros e-commerce ──
+    moda_vestuario: "Moda / Vestuario / Calzado",
+    alimentos_bebidas: "Alimentos y Bebidas",
+    tecnologia_electronica: "Tecnología / Electrónica",
+    belleza_cosmeticos: "Belleza / Cosméticos",
+    deportes: "Deportes / Fitness",
+    hogar_decoracion: "Hogar / Decoración / Muebles",
+    juguetes: "Juguetes / Infantil",
+    mascotas: "Mascotas",
+    libros_papeleria: "Libros / Papelería",
+    joyeria_accesorios: "Joyería / Accesorios",
+    productos_digitales: "Productos Digitales",
+
+    // ── Objetivos de tienda ──
+    vender_online: "Comenzar a vender por internet",
+    expandir_canal: "Agregar canal de venta digital",
+    reemplazar_tienda_fisica: "Migrar de tienda física a online",
+    lanzar_marca: "Lanzar marca nueva online",
+    dropshipping: "Negocio de dropshipping",
+    marketplace_propio: "Marketplace / Multi-vendedor",
+
+    // ── Facturación esperada ──
+    bajo_1m: "Menos de $1.000.000 mensual",
+    "1m_5m": "$1.000.000 – $5.000.000 mensual",
+    "5m_15m": "$5.000.000 – $15.000.000 mensual",
+    "15m_plus": "Más de $15.000.000 mensual",
+
+    // ── Cantidad de productos ──
+    "1_20": "1 a 20 productos",
+    "21_50": "21 a 50 productos",
+    "51_200": "51 a 200 productos",
+    "201_500": "201 a 500 productos",
+    "500_plus": "Más de 500 productos",
+
+    // ── Tipos de producto ──
+    fisicos: "Productos físicos",
+    digitales: "Productos digitales",
+    servicios_digitales: "Servicios",
+    suscripciones: "Suscripciones / Membresías",
+    personalizados: "Productos personalizados",
+
+    // ── Variantes ──
+    algunos: "Algunos productos",
+
+    // ── Categorías ──
+    "1_3": "1 a 3 categorías",
+    "4_10": "4 a 10 categorías",
+    "11_30": "11 a 30 categorías",
+    "30_plus": "Más de 30 categorías",
+
+    // ── Páginas ecommerce ──
+    catalogo: "Catálogo / Tienda",
+    producto_detalle: "Página de Producto",
+    carrito: "Carrito de Compras",
+    checkout: "Checkout / Pago",
+    cuenta_usuario: "Mi Cuenta / Panel de Usuario",
+    politicas: "Políticas (privacidad, devoluciones, envíos)",
+    tracking_pedidos: "Seguimiento de Pedidos",
+
+    // ── Métodos de pago ──
+    transbank_webpay: "Transbank (Webpay Plus)",
+    mercadopago: "MercadoPago",
+    transferencia_bancaria: "Transferencia bancaria manual",
+    contra_entrega: "Pago contra entrega",
+    otro_medio: "Otro medio de pago",
+
+    // ── Estado de cuentas de pago ──
+    ya_tengo_cuentas: "Ya tiene cuentas creadas",
+    necesito_registrarme: "Necesita registrarse",
+
+    // ── Facturación electrónica ──
+    // si: ya mapeado arriba
+
+    // ── Monedas ──
+    clp: "Pesos Chilenos (CLP)",
+    usd: "Dólares (USD)",
+    ambas: "Multi-moneda (CLP + USD)",
+
+    // ── Modelo de envío ──
+    tarifa_plana: "Tarifa plana",
+    por_zona_distancia: "Por zona o distancia",
+    gratis_sobre_monto: "Gratis sobre cierto monto",
+    retiro_en_tienda: "Retiro en tienda / local",
+    solo_digital: "Sin envío (productos digitales)",
+
+    // ── Zonas de envío ──
+    local_misma_ciudad: "Local (misma ciudad)",
+    regional: "Regional (misma región)",
+    nacional: "Nacional (todo Chile)",
+    internacional: "Internacional",
+
+    // ── Manejo de envío ──
+    si_propio: "Envío propio / delivery",
+    courier_externo: "Courier / empresa de envíos",
+    // ambos: ya mapeado
+
+    // ── Sistema de cuentas ──
+    registro_completo: "Solo registro obligatorio",
+    solo_invitado: "Solo compra como invitado",
+    ambos_registro_e_invitado: "Registro + invitado",
+
+    // ── Tracking invitado ──
+    por_email: "Actualizaciones por email",
+    por_numero_pedido: "Nº de pedido + email",
+    sin_tracking_invitado: "Sin seguimiento para invitados",
+
+    // ── Features de cliente ──
+    historial_pedidos: "Historial de pedidos",
+    direcciones_guardadas: "Direcciones guardadas",
+    lista_deseos: "Lista de deseos / Wishlist",
+    puntos_fidelidad: "Programa de puntos / Fidelidad",
+    referidos: "Sistema de referidos",
+
+    // ── Nivel de inventario ──
+    sin_control: "Sin control de stock",
+    stock_basico: "Stock básico",
+    stock_avanzado: "Stock avanzado (alertas, por variante)",
+
+    // ── Fotos de producto ──
+    si_profesionales: "Fotos profesionales listas",
+    si_propias: "Fotos propias / amateur",
+    necesito_servicio: "Necesita servicio de fotografía",
+    usare_mockups: "Mockups / imágenes de proveedor",
+
+    // ── Estilo de descripción de producto ──
+    breve_ficha_tecnica: "Ficha técnica breve",
+    descriptivo_comercial: "Descriptivo comercial",
+    storytelling: "Storytelling (historia + emoción)",
+
+    // ── Tiene idea de logo ──
+    tengo_idea: "Tiene idea de cómo lo quiere",
+
+    // ── Features ecommerce ──
+    resenas_valoraciones: "Reseñas y valoraciones",
+    comparador_productos: "Comparador de productos",
+    zoom_producto: "Zoom de imagen de producto",
+    productos_relacionados: "Productos relacionados",
+    filtros_avanzados: "Filtros avanzados",
+    busqueda_inteligente: "Búsqueda inteligente",
+    notificaciones_stock: "Notificaciones de stock",
+    multi_idioma: "Multi-idioma (ES/EN)",
+    pwa_app_movil: "PWA / App móvil",
+
+    // ── Marketing features ──
+    newsletter_email: "Email marketing / Newsletter",
+    banners_promocionales: "Banners promocionales",
+    analytics_tracking: "Analytics y tracking",
+    seo_schema_producto: "SEO avanzado (schema de producto)",
+    redes_sociales_shop: "Integración redes sociales",
+    carritos_abandonados: "Carritos abandonados",
+    codigos_descuento: "Códigos de descuento / Cupones",
+    programa_referidos: "Programa de referidos",
+
+    // ── Plataformas sociales ──
+    instagram_shopping: "Instagram Shopping",
+    facebook_shop: "Facebook Shop",
+    tiktok_shop: "TikTok Shop",
+    google_shopping: "Google Shopping",
+    pinterest: "Pinterest",
+
+    // ── SEO level ──
+    avanzado: "Avanzado",
+    seo_no_necesito: "No necesita por ahora",
+
+    // ── Dominio ecommerce ──
+    si_tengo: "Ya tiene dominio",
+
+    // ── Import masivo ──
+    // si, no, no_se ya mapeados
+
+    // ── Tiene dominio ──
+    // necesito already mapped
+
 };
 
 /**

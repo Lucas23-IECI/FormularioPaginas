@@ -5,21 +5,8 @@ import Link from "next/link";
 import { Rocket, ShoppingCart, Building2, ArrowRight, Sparkles } from "lucide-react";
 import { getAllConfigs } from "@/modules/briefingEngine";
 
-const comingSoonConfigs = [
-  {
-    type: "WEB_CORPORATIVA",
-    label: "Web Corporativa",
-    description: "Sitio web completo con múltiples páginas para tu negocio",
-    icon: "Building2",
-    enabled: false,
-  },
-  {
-    type: "ECOMMERCE",
-    label: "E-commerce",
-    description: "Tienda online completa con carrito de compras y pagos",
-    icon: "ShoppingCart",
-    enabled: false,
-  },
+const comingSoonConfigs: { type: string; label: string; description: string; icon: string; enabled: boolean }[] = [
+  // All types now enabled in the engine
 ];
 
 const iconMap: Record<string, React.ReactNode> = {

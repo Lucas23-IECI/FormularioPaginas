@@ -16,10 +16,12 @@ export function PriceSummary({ compact = false }: PriceSummaryProps) {
 
     const pricing = useMemo(() => calculatePrice(formData, type), [formData, type]);
 
-    // Web Corporativa usa "pages", Landing usa "sections"
-    const hasMinimumData = type === "WEB_CORPORATIVA"
-        ? (formData.pages as string[])?.length > 0
-        : (formData.sections as string[])?.length > 0;
+    // Cada tipo usa distintos campos para determinar datos mínimos
+    const hasMinimumData = type === "ECOMMERCE"
+        ? !!(formData.productCount) && (formData.paymentMethods as string[])?.length > 0
+        : type === "WEB_CORPORATIVA"
+            ? (formData.pages as string[])?.length > 0
+            : (formData.sections as string[])?.length > 0;
 
     if (!hasMinimumData && compact) return null;
 
